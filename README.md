@@ -72,8 +72,16 @@ curl -fsSL https://raw.githubusercontent.com/Trit1967/artifact-buckets/main/inst
   | sudo sh -s -- --host files.example.com --email you@example.com --yes
 ```
 
-`install.sh --help` lists the rest: your own certificate (`--tls files --cert --key`), other ports, a ZFS pool,
-building the image from source, and an extra CA for builds behind a TLS-inspecting proxy.
+**Behind a port forward or NAT:** listen on one port and tell people another, and name the outside address so the
+self-signed certificate covers it:
+
+```bash
+... | sudo sh -s -- --host files.lan --https-port 443 --public-https-port 8443 \
+        --http-port 80 --public-http-port 8090 --ip 203.0.113.7
+```
+
+`install.sh --help` lists the rest: your own certificate (`--tls files --cert --key`), a ZFS pool, building the
+image from source, and an extra CA for builds behind a TLS-inspecting proxy.
 
 **Without the installer:** `deploy/install/compose.yml` is plain Docker Compose. From a clone,
 `cd deploy/install && cp env.example .env`, fill it in, then `docker compose up -d --build`.
@@ -83,7 +91,7 @@ building the image from source, and an extra CA for builds behind a TLS-inspecti
 
 ```bash
 sudo artifact-buckets status       # what's running
-sudo artifact-buckets logs         # follow the logs (add app, caddy or db)
+sudo artifact-buckets logs         # recent logs (add app, caddy or db; -f to follow)
 sudo artifact-buckets password     # the first admin password
 sudo artifact-buckets upgrade      # newest version; settings and data stay
 sudo artifact-buckets uninstall    # remove it; files and database stay in /opt/artifact-buckets
