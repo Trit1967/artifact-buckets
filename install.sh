@@ -11,14 +11,16 @@
 #
 # Everything lives in one folder (/opt/artifact-buckets) and its containers. Afterwards:
 #
-#   sudo artifact-buckets status | logs | password | restart | upgrade | uninstall [--purge]
+#   sudo artifact-buckets status | logs [-f] | password | restart | upgrade | uninstall [--purge]
 #
 # Options (install):
 #   --host NAME         the name or IP address people reach the server by
 #   --email ADDRESS     the admin's email; also used for Let's Encrypt
 #   --tls MODE          auto (default), letsencrypt, self-signed, or files (with --cert and --key)
 #   --cert FILE --key FILE   your own certificate and key (PEM), for --tls files
-#   --https-port N --http-port N   defaults 443 and 80
+#   --https-port N --http-port N   ports to listen on (defaults 443 and 80)
+#   --public-https-port N --public-http-port N   ports people use, when a forward or NAT maps them to others
+#   --ip ADDR[,ADDR]    extra IP addresses people may use (e.g. the outer address behind NAT); self-signed only
 #   --zfs POOL[/DATASET]     keep files on ZFS with automatic restore points (asked when ZFS is present)
 #   --no-zfs            plain folders even when ZFS is present
 #   --image REF         use this app image instead of the published one
@@ -54,6 +56,7 @@ ZFS_GROUP="$APP_SLUG-zfs"
 
 HOST="" EMAIL="" TLS="auto" CERT="" KEY="" HTTPS_PORT="" HTTP_PORT="" ZFS="" NO_ZFS="" IMAGE="" BUILD=""
 SOURCE="${AB_SOURCE:-}" CA_FILE="" YES="" PURGE="" HOST_GIVEN="" OLD_IMAGE_ID=""
+EXTRA_IPS="" PUB_HTTPS="" PUB_HTTP="" DOCKER_NEW=""
 
 if [ -t 1 ]; then B=$(printf '\033[1m'); D=$(printf '\033[2m'); R=$(printf '\033[0m'); else B="" D="" R=""; fi
 say()  { printf '%s\n' "$*"; }
@@ -128,6 +131,15 @@ primary_ip() {
   [ -n "$_ip" ] || _ip=$(hostname -I 2>/dev/null | awk '{print $1}')
   printf '%s' "${_ip:-127.0.0.1}"
 }
+# This machine's own IPv4 addresses (not loopback or container bridges), one per line.
+local_ips() {
+  if have ip; then
+    ip -4 -o addr show scope global 2>/dev/null | awk '$2 !~ /^(docker|br-|veth|virbr|cni|flannel|cali)/ { sub(/\/.*/, "", $4); print $4 }'
+  else
+    hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -v '^172\.1[7-9]\.'
+  fi
+}
+
 port_busy() {
   if have ss; then ss -ltnH "sport = :$1" 2>/dev/null | grep -q . && return 0; return 1; fi
   if have netstat; then netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1\$" && return 0; return 1; fi
@@ -177,6 +189,7 @@ ensure_docker() {
     fetch https://get.docker.com "$_gd" || die "Couldn't download get.docker.com."
     if ! sh "$_gd" >"$_log" 2>&1; then tail -n 20 "$_log" >&2; rm -f "$_gd"; die "Installing Docker failed (log above, full log in $_log)."; fi
     rm -f "$_gd" "$_log"
+    DOCKER_NEW=1
   fi
   if ! docker info >/dev/null 2>&1; then
     if have systemctl; then systemctl enable --now docker >/dev/null 2>&1 || true; fi
@@ -243,6 +256,13 @@ choose_image() {
     DOCKER_BUILDKIT=1 docker build -q -t "$_img" "$DIR/src" >/dev/null
   fi
   env_set AB_IMAGE "$_img"
+  # The build leaves several hundred MB of cache. Clear it when this installer put Docker here; on a
+  # machine that already had Docker, the cache may be someone else's, so only say how.
+  if [ "$(env_get AB_DOCKER_INSTALLED)" = 1 ] || [ -n "$DOCKER_NEW" ]; then
+    docker builder prune -af >/dev/null 2>&1 || true
+  else
+    say "${D}Tip: 'docker builder prune' frees the build cache (several hundred MB) if nothing else here needs it.${R}"
+  fi
 }
 
 choose_address() {
@@ -284,6 +304,10 @@ choose_address() {
     HTTP_PORT=80
     if port_busy 80; then warn "Port 80 is in use on this machine."; ask HTTP_PORT "HTTP port to use instead" "$(free_port 8080)"; fi
   fi
+  [ -n "$PUB_HTTPS" ] || PUB_HTTPS=$(env_get AB_PUBLIC_HTTPS_PORT); [ -n "$PUB_HTTPS" ] || PUB_HTTPS=$HTTPS_PORT
+  [ -n "$PUB_HTTP" ] || PUB_HTTP=$(env_get AB_PUBLIC_HTTP_PORT); [ -n "$PUB_HTTP" ] || PUB_HTTP=$HTTP_PORT
+  valid_port "$PUB_HTTPS" || die "'$PUB_HTTPS' isn't a port number."
+  valid_port "$PUB_HTTP" || die "'$PUB_HTTP' isn't a port number."
   valid_port "$HTTPS_PORT" || die "'$HTTPS_PORT' isn't a port number."
   valid_port "$HTTP_PORT" || die "'$HTTP_PORT' isn't a port number."
   [ "$HTTPS_PORT" != "$HTTP_PORT" ] || die "The HTTPS and HTTP ports must differ."
@@ -305,15 +329,21 @@ choose_address() {
   fi
   case $TLS in
     letsencrypt)
-      [ "$HTTPS_PORT" = 443 ] && [ "$HTTP_PORT" = 80 ] || die "Let's Encrypt needs ports 80 and 443. Free them, or use --tls self-signed."
+      [ "$HTTPS_PORT" = 443 ] && [ "$HTTP_PORT" = 80 ] && [ "$PUB_HTTPS" = 443 ] && [ "$PUB_HTTP" = 80 ] || die "Let's Encrypt needs ports 80 and 443. Free them, or use --tls self-signed."
       ! is_ip "$HOST" || die "Let's Encrypt needs a name, not an IP address. Use --tls self-signed." ;;
     files) [ -f "$CERT" ] && [ -f "$KEY" ] || die "--tls files needs --cert FILE and --key FILE." ;;
     self-signed) ;;
     *) die "Unknown --tls $TLS (auto, letsencrypt, self-signed, files)" ;;
   esac
 
-  if [ "$HTTPS_PORT" = 443 ]; then BASE_URL="https://$HOST"; else BASE_URL="https://$HOST:$HTTPS_PORT"; fi
-  if [ "$HTTP_PORT" = 80 ]; then PLAIN_URL="http://$HOST"; else PLAIN_URL="http://$HOST:$HTTP_PORT"; fi
+  if [ "$PUB_HTTPS" = 443 ]; then BASE_URL="https://$HOST"; else BASE_URL="https://$HOST:$PUB_HTTPS"; fi
+  if [ "$PUB_HTTP" = 80 ]; then PLAIN_URL="http://$HOST"; else PLAIN_URL="http://$HOST:$PUB_HTTP"; fi
+
+  # Every address the self-signed certificate names: this machine's own, plus any given with --ip
+  # (an outer address behind NAT or a port forward), plus the one the name resolves to.
+  [ -n "$EXTRA_IPS" ] || EXTRA_IPS=$(env_get AB_EXTRA_IPS)
+  for _x in $(printf '%s' "$EXTRA_IPS" | tr ',' ' '); do is_ip "$_x" || die "--ip $_x isn't an IPv4 address."; done
+  ALL_IPS=$({ printf '%s\n' "$HOST_IP"; local_ips; printf '%s' "$EXTRA_IPS" | tr ',' '\n'; } | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -v '^127\.' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n -u | tr '\n' ' ')
 }
 
 make_certificate() {
@@ -323,11 +353,13 @@ make_certificate() {
       install -m 600 "$KEY" "$DIR/data/tls/server.key"
       install -m 644 "$CERT" "$DIR/data/tls/public/server.crt" ;;
     self-signed)
-      if is_ip "$HOST"; then _san="IP:$HOST"; else _san="DNS:$HOST,IP:$HOST_IP"; fi
+      _san=""; is_ip "$HOST" || _san="DNS:$HOST"
+      for _x in $ALL_IPS; do _san="${_san:+$_san,}IP:$_x"; done
+      case ",$_san," in *",IP:$HOST,"*|*DNS:*) ;; *) _san="IP:$HOST,$_san" ;; esac
       _have=$(openssl x509 -in "$DIR/data/tls/public/server.crt" -noout -ext subjectAltName 2>/dev/null | sed -n 2p | tr -d ' ' || true)
       _want=$(printf '%s' "$_san" | sed 's/IP:/IPAddress:/g')
       if [ "$_have" != "$_want" ] || [ ! -f "$DIR/data/tls/server.key" ]; then
-        step "Making a self-signed certificate for $HOST"
+        step "Making a self-signed certificate for $HOST ($(printf '%s' "$ALL_IPS" | sed 's/ *$//; s/ /, /g'))"
         # A server certificate, not a CA: a computer that trusts it trusts this server and nothing else.
         openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 \
           -keyout "$DIR/data/tls/server.key" -out "$DIR/data/tls/public/server.crt" \
@@ -351,7 +383,8 @@ write_caddyfile() {
       files)
         printf 'https://%s {\n\ttls /certs/public/server.crt /certs/server.key\n\timport app\n}\n' "$HOST" ;;
       self-signed)
-        if is_ip "$HOST"; then _sites="https://$HOST"; else _sites="https://$HOST, https://$HOST_IP"; fi
+        _sites="https://$HOST"
+        for _x in $ALL_IPS; do [ "$_x" = "$HOST" ] || _sites="$_sites, https://$_x"; done
         printf '%s {\n\ttls /certs/public/server.crt /certs/server.key\n\timport app\n}\n\n' "$_sites"
         # Plain http only hands out the Claude Code setup files and the certificate (a computer needs them
         # before it trusts the certificate); everything else goes to https.
@@ -378,6 +411,11 @@ write_env() {
   env_set AB_TLS_MODE "$TLS"
   env_set AB_HTTPS_PORT "$HTTPS_PORT"
   env_set AB_HTTP_PORT "$HTTP_PORT"
+  # Kept only when they differ from the listening ports, so a later --https-port change carries over.
+  if [ "$PUB_HTTPS" = "$HTTPS_PORT" ]; then env_set AB_PUBLIC_HTTPS_PORT ""; else env_set AB_PUBLIC_HTTPS_PORT "$PUB_HTTPS"; fi
+  if [ "$PUB_HTTP" = "$HTTP_PORT" ]; then env_set AB_PUBLIC_HTTP_PORT ""; else env_set AB_PUBLIC_HTTP_PORT "$PUB_HTTP"; fi
+  env_set AB_EXTRA_IPS "$EXTRA_IPS"
+  [ -z "$DOCKER_NEW" ] || env_set AB_DOCKER_INSTALLED 1
   env_set AB_SMB_ENABLED false
   env_set AB_SMB_HOST "$HOST"
   [ -z "$CA_FILE" ] || env_set AB_BUILD_CA "$CA_FILE"
@@ -477,7 +515,7 @@ wait_ready() {
   HTTPS_OK=""
   _j=0
   while [ $_j -lt 15 ]; do
-    if curl -fsk --noproxy "*" -o /dev/null --resolve "$HOST:$HTTPS_PORT:127.0.0.1" "$BASE_URL/healthz" 2>/dev/null; then HTTPS_OK=1; break; fi
+    if curl -fsk --noproxy "*" -o /dev/null --resolve "$HOST:$HTTPS_PORT:127.0.0.1" "https://$HOST:$HTTPS_PORT/healthz" 2>/dev/null; then HTTPS_OK=1; break; fi
     _j=$((_j + 1)); sleep 2
   done
 }
@@ -501,6 +539,10 @@ summary() {
     say "  offers to trust it on that computer (for this server only).${R}"
   fi
   [ -n "$HTTPS_OK" ] || { say ""; warn "HTTPS didn't answer yet on $BASE_URL. With Let's Encrypt the first certificate can take a minute; 'sudo $APP_SLUG logs caddy' shows why."; }
+  if [ "$PUB_HTTPS" != "$HTTPS_PORT" ] || [ "$PUB_HTTP" != "$HTTP_PORT" ]; then
+    say ""
+    say "  Forward ports $PUB_HTTPS -> $HTTPS_PORT and $PUB_HTTP -> $HTTP_PORT on this machine (people use $PUB_HTTPS and $PUB_HTTP)."
+  fi
   [ -z "$ZFS" ] || say "  Files are on ZFS ($ZFS) with automatic restore points."
   say ""
   say "  Manage:  sudo $APP_SLUG status | logs | password | restart | upgrade | uninstall"
@@ -597,9 +639,10 @@ usage() {
 $APP_NAME installer.  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | sudo sh -s -- [options]
 
   install (default)   --host NAME  --email ADDR  --tls auto|letsencrypt|self-signed|files  --cert F --key F
-                      --https-port N  --http-port N  --zfs POOL[/DATASET]  --no-zfs  --image REF  --build
+                      --https-port N  --http-port N  --public-https-port N  --public-http-port N  --ip ADDR
+                      --zfs POOL[/DATASET]  --no-zfs  --image REF  --build
                       --source DIR|URL  --ref REF  --ca-file F  --dir DIR  --yes
-  status | logs [service] | password | restart
+  status | logs [app|caddy|db] [-f] | password | restart
   upgrade             [--source DIR|URL] [--build] [--image REF]
   uninstall           [--purge] [--yes]   (keeps files and database unless --purge)
 
@@ -615,7 +658,13 @@ need() {
 main() {
   _cmd=install
   case ${1:-} in install|upgrade|uninstall|status|logs|password|restart|help|-h|--help) _cmd=$1; shift ;; esac
-  if [ "$_cmd" = logs ]; then [ -f "$DIR/compose.yml" ] || die "Not installed."; compose logs --tail 200 -f "$@"; return; fi
+  if [ "$_cmd" = logs ]; then
+    [ -f "$DIR/compose.yml" ] || die "$APP_NAME isn't installed in $DIR."
+    _f=""; _svc=""
+    for _a in "$@"; do case $_a in -f|--follow) _f=1 ;; app|caddy|db) _svc="$_svc $_a" ;; *) die "logs takes app, caddy or db, and -f to follow." ;; esac; done
+    if [ -n "$_f" ]; then compose logs --tail 100 -f $_svc; else compose logs --tail 200 $_svc; fi
+    return
+  fi
   while [ $# -gt 0 ]; do
     case $1 in
       --host) need "$@"; HOST=$2; HOST_GIVEN=1; shift 2 ;;
@@ -624,6 +673,9 @@ main() {
       --cert) need "$@"; CERT=$2; shift 2 ;;
       --key) need "$@"; KEY=$2; shift 2 ;;
       --https-port) need "$@"; HTTPS_PORT=$2; shift 2 ;;
+      --public-https-port) need "$@"; PUB_HTTPS=$2; shift 2 ;;
+      --public-http-port) need "$@"; PUB_HTTP=$2; shift 2 ;;
+      --ip) need "$@"; EXTRA_IPS="${EXTRA_IPS:+$EXTRA_IPS,}$2"; shift 2 ;;
       --http-port) need "$@"; HTTP_PORT=$2; shift 2 ;;
       --zfs) need "$@"; ZFS=$2; shift 2 ;;
       --no-zfs) NO_ZFS=1; shift ;;
