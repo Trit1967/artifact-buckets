@@ -22,6 +22,13 @@ export function ago(iso) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// "just now", "4 min ago", "yesterday": for use inside a sentence.
+export function agoPhrase(iso) {
+  const a = ago(iso);
+  if (a === 'Just now' || a === 'Yesterday' || a === 'Never') return a.toLowerCase();
+  return /\d{4}/.test(a) ? `on ${a}` : `${a} ago`;
+}
+
 export function when(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });

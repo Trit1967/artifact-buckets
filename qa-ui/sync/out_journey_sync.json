@@ -1,0 +1,515 @@
+{
+  "results": [
+    {
+      "name": "[1440] first sign-in goes to /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[1440] welcome hello: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] welcome connect: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] welcome work: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] welcome land: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] welcome step 3 shows arriving files live",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] welcome step 3 shows the linked computer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] welcome step 3 with long names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] where-things-land shows the real project folder",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] welcome: first Tab reaches a control",
+      "ok": true,
+      "detail": "Close"
+    },
+    {
+      "name": "[1440] skip/close marks the welcome seen",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/files"
+    },
+    {
+      "name": "[1440] second sign-in skips the welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/"
+    },
+    {
+      "name": "[1440] account menu has Getting started",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] Getting started opens /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[1440] /link signed out goes to sign-in with next",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/login?next=%2Flink%3Fcode%3DGW2C-C7P5"
+    },
+    {
+      "name": "[1440] first sign-in from a link page goes to /link, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/link?code=GW2C-C7P5"
+    },
+    {
+      "name": "[1440] first sign-in for Claude Code goes to consent, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/consent?client_id=abc_RyuveAEIv6NvM_jTJyj7bw&redirect_uri=http%3A%2F%2F127.0.0.1%3A33418%2Fcallback&response_type=code&state=s&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&client_name=Claude+Code"
+    },
+    {
+      "name": "[1440] link page shows the same code",
+      "ok": true,
+      "detail": "J7VM3352"
+    },
+    {
+      "name": "[1440] hostile computer name is shown as text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] link page with a long name: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] link page: Allow reachable by keyboard",
+      "ok": true,
+      "detail": "Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr"
+    },
+    {
+      "name": "[1440] link page: focused Allow has a visible focus style",
+      "ok": true,
+      "detail": "{\"o\":\"solid 2px\",\"sh\":\"none\"}"
+    },
+    {
+      "name": "[1440] link page body text contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[1440] link page note contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[1440] Allow shows linked state",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] computer receives the token once",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] used code shows \"already used\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] unknown code shows expired",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] missing code message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] Don't allow shows Not linked; computer told denied",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] Connect lists computers that sync",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "[1440] Connect with long computer names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":1440,\"cw\":1440,\"wide\":[]}"
+    },
+    {
+      "name": "[1440] Turn off removes it and the token stops",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[1440] no page errors or dialogs (XSS)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] first sign-in goes to /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[900] welcome hello: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] welcome connect: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] welcome work: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] welcome land: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] welcome step 3 shows arriving files live",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] welcome step 3 shows the linked computer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] welcome step 3 with long names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] where-things-land shows the real project folder",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] welcome: first Tab reaches a control",
+      "ok": true,
+      "detail": "Close"
+    },
+    {
+      "name": "[900] skip/close marks the welcome seen",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/files"
+    },
+    {
+      "name": "[900] second sign-in skips the welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/"
+    },
+    {
+      "name": "[900] account menu has Getting started",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] Getting started opens /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[900] /link signed out goes to sign-in with next",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/login?next=%2Flink%3Fcode%3DW62R-TSJH"
+    },
+    {
+      "name": "[900] first sign-in from a link page goes to /link, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/link?code=W62R-TSJH"
+    },
+    {
+      "name": "[900] first sign-in for Claude Code goes to consent, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/consent?client_id=abc_9xkeONmerRa6Yy6RZIV2pw&redirect_uri=http%3A%2F%2F127.0.0.1%3A33418%2Fcallback&response_type=code&state=s&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&client_name=Claude+Code"
+    },
+    {
+      "name": "[900] link page shows the same code",
+      "ok": true,
+      "detail": "NEXKEDX7"
+    },
+    {
+      "name": "[900] hostile computer name is shown as text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] link page with a long name: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] link page: Allow reachable by keyboard",
+      "ok": true,
+      "detail": "Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr"
+    },
+    {
+      "name": "[900] link page: focused Allow has a visible focus style",
+      "ok": true,
+      "detail": "{\"o\":\"solid 2px\",\"sh\":\"none\"}"
+    },
+    {
+      "name": "[900] link page body text contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[900] link page note contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[900] Allow shows linked state",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] computer receives the token once",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] used code shows \"already used\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] unknown code shows expired",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] missing code message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] Don't allow shows Not linked; computer told denied",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] Connect lists computers that sync",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "[900] Connect with long computer names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":900,\"cw\":900,\"wide\":[]}"
+    },
+    {
+      "name": "[900] Turn off removes it and the token stops",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[900] no page errors or dialogs (XSS)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] first sign-in goes to /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[390] welcome hello: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] welcome connect: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] welcome work: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] welcome land: no horizontal overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] welcome step 3 shows arriving files live",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] welcome step 3 shows the linked computer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] welcome step 3 with long names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] where-things-land shows the real project folder",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] welcome: first Tab reaches a control",
+      "ok": true,
+      "detail": "Close"
+    },
+    {
+      "name": "[390] skip/close marks the welcome seen",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/files"
+    },
+    {
+      "name": "[390] second sign-in skips the welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/"
+    },
+    {
+      "name": "[390] account menu has Getting started",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] Getting started opens /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/welcome"
+    },
+    {
+      "name": "[390] /link signed out goes to sign-in with next",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/login?next=%2Flink%3Fcode%3DL4LH-SWSS"
+    },
+    {
+      "name": "[390] first sign-in from a link page goes to /link, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/link?code=L4LH-SWSS"
+    },
+    {
+      "name": "[390] first sign-in for Claude Code goes to consent, not /welcome",
+      "ok": true,
+      "detail": "http://127.0.0.1:8096/consent?client_id=abc_-i1IfLTZYbQus9l4DR-WJQ&redirect_uri=http%3A%2F%2F127.0.0.1%3A33418%2Fcallback&response_type=code&state=s&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&client_name=Claude+Code"
+    },
+    {
+      "name": "[390] link page shows the same code",
+      "ok": true,
+      "detail": "8J4VPQ4Z"
+    },
+    {
+      "name": "[390] hostile computer name is shown as text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] link page with a long name: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] link page: Allow reachable by keyboard",
+      "ok": true,
+      "detail": "Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr | Don’t allow | Allow | Let <img src=x onerr"
+    },
+    {
+      "name": "[390] link page: focused Allow has a visible focus style",
+      "ok": true,
+      "detail": "{\"o\":\"solid 2px\",\"sh\":\"none\"}"
+    },
+    {
+      "name": "[390] link page body text contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[390] link page note contrast >= 4.5",
+      "ok": true,
+      "detail": "6.25"
+    },
+    {
+      "name": "[390] Allow shows linked state",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] computer receives the token once",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] used code shows \"already used\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] unknown code shows expired",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] missing code message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] Don't allow shows Not linked; computer told denied",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] Connect lists computers that sync",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "[390] Connect with long computer names: no overflow",
+      "ok": true,
+      "detail": "{\"scroll\":false,\"sw\":390,\"cw\":390,\"wide\":[]}"
+    },
+    {
+      "name": "[390] Turn off removes it and the token stops",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "[390] no page errors or dialogs (XSS)",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "issues": []
+}

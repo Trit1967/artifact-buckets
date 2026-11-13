@@ -4,7 +4,7 @@
   import { api } from '../lib/api.js';
   import { session } from '../lib/session.svelte.js';
   import { route, navigate } from '../lib/router.svelte.js';
-  import { ago, bytes } from '../lib/format.js';
+  import { ago, agoPhrase, bytes } from '../lib/format.js';
   import Logo from '../lib/Logo.svelte';
   import Icon from '../lib/Icon.svelte';
   import Copy from '../lib/Copy.svelte';
@@ -99,7 +99,7 @@
           <div class="live" class:ok={connected}>
             {#if connected}
               <span class="lv-i"><Icon name="check" /></span>
-              <span><b>Connected.</b> {devices[0].name}, {ago(devices[0].created_at)}.{#if devices.length > 1} And {devices.length - 1} more.{/if}</span>
+              <span><b>Connected.</b> {devices[0].name}, {agoPhrase(devices[0].created_at)}.{#if devices.length > 1} And {devices.length - 1} more.{/if}</span>
             {:else}
               <span class="pulse" aria-hidden="true"></span>
               <span>Waiting for Claude Code to sign in… this updates by itself.</span>
@@ -123,8 +123,7 @@
             <div class="ar-hd">
               {#if linked}
                 <span class="pip big"></span>
-                <span><b>{sync.computers.map((c) => c.name).join(', ')}</b> {sync.computers.length > 1 ? 'are' : 'is'} syncing{#if sync.computers[0].last_sync}, last {ago(sync.computers[0].last_sync)}{/if}</span>
-                <span class="grow"></span>
+                <span class="ar-who"><b>{sync.computers.map((c) => c.name).join(', ')}</b> {sync.computers.length > 1 ? 'are' : 'is'} syncing{#if sync.computers[0].last_sync}, last copied {agoPhrase(sync.computers[0].last_sync)}{/if}</span>
                 <span class="mono count">{sync.files} {sync.files === 1 ? 'file' : 'files'} · {bytes(sync.bytes, 1)}</span>
               {:else}
                 <span class="pulse" aria-hidden="true"></span><span>Waiting for a computer to link… files appear here as they arrive.</span>
@@ -133,7 +132,7 @@
             {#if sync?.recent?.length}
               <ul class="feed">
                 {#each sync.recent.slice(0, 6) as f (f.path + f.version)}
-                  <li><Icon name="doc" /><span class="mono fp">{short(f.path)}</span><span class="note">{ago(f.at)}</span></li>
+                  <li title={short(f.path)}><Icon name="doc" /><span class="mono fp"><span class="fdir">{short(f.path).replace(/[^/]*$/, '')}</span><span class="fname">{f.path.split('/').pop()}</span></span><span class="note when">{ago(f.at)}</span></li>
                 {/each}
               </ul>
             {/if}
@@ -165,8 +164,9 @@
       <footer class="foot">
         {#if step > 0}<button class="btn" onclick={() => go(step - 1)}>Back</button>{:else}<span></span>{/if}
         {#if step < STEPS.length - 1}
-          <button class="btn pri" onclick={() => go(step + 1)}>
-            {step === 0 ? 'Get started' : step === 1 && !connected ? 'I’ll do this later' : step === 2 && !linked ? 'Skip this' : 'Continue'}
+          {@const later = (step === 1 && !connected) || (step === 2 && !linked)}
+          <button class="btn" class:pri={!later} onclick={() => go(step + 1)}>
+            {step === 0 ? 'Get started' : later ? 'Skip for now' : 'Continue'}
           </button>
         {:else}
           <button class="btn pri" onclick={() => finish(projectFolders.length ? `/files?path=${encodeURIComponent(home + '/projects')}` : '/files')}>Go to my files</button>
@@ -229,12 +229,16 @@
   .arrivals { border-radius: 12px; border: 1px solid var(--line); background: #0F1012; overflow: hidden; }
   .ar-hd { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
   .ar-hd b { color: var(--text); font-weight: 500; }
-  .count { font-size: 12px; color: var(--text-2); }
+  .ar-who { flex: 1; min-width: 0; }
+  .count { font-size: 12px; color: var(--text-2); white-space: nowrap; margin-left: auto; }
+  .when { flex: none; white-space: nowrap; }
   .feed { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-soft); }
   .feed li { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 12.5px; border-bottom: 1px solid var(--line-soft); animation: rise .3s ease-out; }
   .feed li:last-child { border-bottom: 0; }
   .feed :global(.ic) { color: var(--faint); flex: none; }
-  .fp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  .fp { flex: 1; min-width: 0; display: flex; white-space: nowrap; color: var(--text-2); }
+  .fdir { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--faint); }
+  .fname { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
   .tree { padding: 16px 18px; border-radius: 12px; background: #0F1012; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
   .tr { display: flex; align-items: center; gap: 10px; height: 30px; color: var(--text-2); position: relative; }
@@ -258,7 +262,7 @@
     .rail::before { display: none; }
     .st { flex-direction: column; gap: 6px; padding: 8px 4px; font-size: 11.5px; text-align: center; }
     .st.on { background: none; box-shadow: none; }
-    .pip { position: absolute; top: 6px; right: calc(50% - 20px); }
+    .st .pip { position: absolute; top: 6px; right: calc(50% - 20px); }
     .body { padding: 26px 20px 22px; }
     .foot { padding: 14px 20px; }
     h1 { font-size: 24px; }

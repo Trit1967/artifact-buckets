@@ -29,7 +29,7 @@ $Conf = Join-Path $Dir 'sync.conf'
 $State = Join-Path $Dir 'state'
 $ClaudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
 $Utf8 = New-Object System.Text.UTF8Encoding $false
-New-Item -ItemType Directory -Force -Path $State | Out-Null
+if ($Cmd -ne 'hook') { New-Item -ItemType Directory -Force -Path $State | Out-Null }
 
 function Say([string]$m) { if (-not $Quiet) { Write-Host "  $m" } }
 function Die([string]$m) { if ($Quiet) { exit 0 }; Write-Host ''; Write-Host "  $m" -ForegroundColor Yellow; Write-Host ''; exit 1 }
@@ -113,12 +113,14 @@ public static class ABSync1 {
       psi.RedirectStandardOutput = true; psi.RedirectStandardError = true; psi.RedirectStandardInput = input != null;
       psi.StandardOutputEncoding = new UTF8Encoding(false);
       using (var p = Process.Start(psi)) {
+        System.Threading.Tasks.Task feed = null;
         if (input != null) {
           var w = new StreamWriter(p.StandardInput.BaseStream, new UTF8Encoding(false));
-          w.Write(input); w.Close();
+          feed = System.Threading.Tasks.Task.Factory.StartNew(() => { try { w.Write(input); w.Close(); } catch (IOException) { } });
         }
         p.StandardError.ReadToEndAsync();
         string o = p.StandardOutput.ReadToEnd();
+        if (feed != null) feed.Wait();
         p.WaitForExit();
         return (p.ExitCode == 0 || p.ExitCode == 1) ? o : null;  // check-ignore exits 1 when nothing matched
       }
@@ -207,7 +209,7 @@ function Link([string]$srv) {
   Write-Host "  To let this computer sync, open $($s.link)"
   Write-Host "  and check the code matches: $($s.code)"
   Write-Host ''
-  try { Start-Process $s.link } catch { }
+  if ("$($s.link)" -match '^https?://') { try { Start-Process $s.link } catch { } }
   for ($i = 0; $i -lt 300; $i++) {
     Start-Sleep -Seconds 2
     try {
@@ -217,6 +219,7 @@ function Link([string]$srv) {
     switch ($r.status) {
       'approved' {
         $max = if ($r.max_file_bytes) { $r.max_file_bytes } else { 524288000 }
+        Remove-Item -LiteralPath (Join-Path $State 'sent.tsv'), (Join-Path $State 'last-run'), (Join-Path $State 'next-run') -Force -ErrorAction SilentlyContinue
         $script:C = @{ server = $srv; token = $r.token; computer = $name; home = $r.home; max = "$max"; enabled = 'on'; ca = $C['ca'] }
         Write-Conf $script:C
         Write-Host "  Linked. Files Claude makes on this computer go to $($r.home)"
@@ -232,8 +235,9 @@ function Link([string]$srv) {
 
 # ---- deciding what goes where ----------------------------------------------------------------
 $BuildDirs = @('node_modules', '.git', 'dist', 'build', '.venv', 'venv', '__pycache__', '.next', 'target', '.cache', 'vendor')
-$SecretNames = @('.env', '.env.*', '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore', 'id_rsa*', 'id_ed25519*',
-  'id_ecdsa*', '.npmrc', '.netrc', '.pypirc', '*.kdbx', '*secret*', '*credential*', '*.tfstate', '*.tfvars')
+$SecretNames = @('.env', '.env.*', '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore', '*.crt', '*.cer', '*.der',
+  'id_rsa*', 'id_ed25519*', 'id_ecdsa*', 'id_dsa*', '.npmrc', '.netrc', '.pypirc', '*.kdbx', '*secret*', '*credential*',
+  '*password*', '*.tfstate', '*.tfstate.*', '*.tfvars')
 $SystemDirs = @($ClaudeDir, $Dir, $env:TEMP, $env:TMP, $env:WINDIR, (Join-Path $HOME 'AppData')) |
   Where-Object { $_ } | ForEach-Object { [IO.Path]::GetFullPath($_).TrimEnd('\') + '\' }
 
@@ -288,7 +292,7 @@ function Plan-Files($cands, [long]$max) {
   foreach ($it in $items) {
     if ($it.Skip) { continue }
     $top = Git-Top ([IO.Path]::GetDirectoryName($it.File))
-    if (-not $top) { continue }
+    if (-not $top -or -not (Under $it.File $top)) { continue }   # junctions or subst drives: git names another path
     $it.Top = $top
     if (-not $byTop.ContainsKey($top)) { $byTop[$top] = New-Object System.Collections.ArrayList }
     [void]$byTop[$top].Add($it)
@@ -315,14 +319,14 @@ function Plan-Files($cands, [long]$max) {
     if ($cwd -and $cwd -ne $home_ -and $cwd -notmatch '^[A-Za-z]:$') {
       $root = $cwd
       $t = Git-Top $cwd
-      if ($t -and $t -ne $home_) { $root = $t }
+      if ($t -and $t -ne $home_ -and ((Under $cwd $t) -or $cwd -eq $t)) { $root = $t }
     }
     # Made outside the folder Claude Code ran in: file it under its own repository if it has one,
     # otherwise keep its full path in the inbox so files with the same name don't collide.
     if ($root -and -not (Under $it.File $root)) { $root = '' }
     if (-not $root) {
       $t = Git-Top ([IO.Path]::GetDirectoryName($it.File))
-      if ($t -and $t -ne $home_) { $root = $t }
+      if ($t -and $t -ne $home_ -and (Under $it.File $t)) { $root = $t }
     }
     if ($root) {
       $it.Where = 'projects'; $it.Project = Split-Path -Leaf $root; $it.Rel = $it.File.Substring($root.Length + 1).Replace('\', '/')
@@ -382,7 +386,7 @@ function Sync-Files([string]$mode) {
     return
   }
 
-  $ok = 0; $failed = 0
+  $ok = 0; $failed = 0; $skipped = 0
   $url = $C['server'].TrimEnd('/') + '/api/sync/file'
   foreach ($it in $send) {
     $h = [string[]]@('Authorization', "Bearer $($C['token'])", 'X-Sync-Where', $it.Where, 'X-Sync-Path', (B64 $it.Rel))
@@ -394,16 +398,19 @@ function Sync-Files([string]$mode) {
       401 { Die "This computer's link was turned off. Run: sync.ps1 link" }
       0 { $failed++; Say "Couldn't reach the server for $($it.Rel)" }
       -1 { $failed++; Say "Couldn't read $($it.Rel)" }
-      default {
-        $failed++
+      { $_ -in 400, 403, 404, 409, 413, 415, 422 } {
+        # The server will refuse this file as it is: don't retry until it changes.
+        [IO.File]::AppendAllText($sentFile, "$($it.Dest)`t$($it.Sha)`r`n", $Utf8); $skipped++
         $msg = try { ($body | ConvertFrom-Json).message } catch { "error $code" }
         Say "Not copied: $($it.Rel) ($msg)"
       }
+      default { $failed++; Say "Not copied yet: $($it.Rel) (the server said $code)" }
     }
   }
   # Next time, only history written after this run began. Anything that failed is tried again.
   if ($failed -eq 0) { Move-Item -LiteralPath $next -Destination $marker -Force }
-  if ($failed -gt 0) { Say "Done: $ok copied, $failed not copied."; Say "Files that weren't copied are tried again next time." }
+  if ($failed -gt 0) { Say "Done: $ok copied, $failed not copied yet."; Say "Files that weren't copied are tried again next time." }
+  elseif ($skipped -gt 0) { Say "Done: $ok copied, $skipped refused by the server." }
   else { Say "Done: $ok copied." }
 }
 
@@ -429,6 +436,7 @@ switch ($Cmd) {
   'exclude' {
     if ($Arg) {
       $x = try { (Resolve-Path -LiteralPath $Arg -ErrorAction Stop).ProviderPath.TrimEnd('\') } catch { Die "No such folder: $Arg" }
+      if ($x -match '^[A-Za-z]:$' -or -not $x) { Die 'Excluding a whole drive would stop sync there altogether. Use: sync.ps1 off' }
       if (-not ($Excludes -contains $x)) { [IO.File]::AppendAllText($ExcludeFile, "$x`r`n", $Utf8) }
       Say "Won't copy anything under $x."
     } elseif ($Excludes.Count) { Say 'Never copied:'; foreach ($x in $Excludes) { Say "  $x" } }

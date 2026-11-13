@@ -2,7 +2,7 @@
   import { api } from '../lib/api.js';
   import { session } from '../lib/session.svelte.js';
   import { toast, fail } from '../lib/toast.svelte.js';
-  import { ago, when } from '../lib/format.js';
+  import { ago, agoPhrase, when } from '../lib/format.js';
   import Icon from '../lib/Icon.svelte';
   import Copy from '../lib/Copy.svelte';
   import Modal from '../lib/Modal.svelte';
@@ -10,6 +10,7 @@
   let tokens = $state(null);
   let dialog = $state(null);
   let created = $state(null);
+  let stopping = $state(null);
   let form = $state({ name: '', scope: 'write', folders: '', days: 30 });
 
   let everyone = $state(false);
@@ -156,9 +157,9 @@
           <span class="dvi"><Icon name="refresh" /></span>
           <span class="grow" style="display:flex;flex-direction:column;gap:3px">
             <span style="font-weight:500">{d.name.replace(/^Sync on /, '')}{#if everyone} <span class="note">· {d.user}</span>{/if}</span>
-            <span class="note">Linked {ago(d.created_at)} · last synced {d.last_used ? ago(d.last_used) : 'not yet'}</span>
+            <span class="note">Linked {agoPhrase(d.created_at)} · last copied {d.last_used ? agoPhrase(d.last_used) : 'nothing yet'}</span>
           </span>
-          <button class="btn sm danger" onclick={() => revoke(d)}>Turn off</button>
+          <button class="btn sm danger" onclick={() => (stopping = d)}>Turn off</button>
         </div>
       {/each}
     {/if}
@@ -200,6 +201,12 @@
       <label class="lbl">Only these folders (optional, one per line)<textarea class="field" rows="3" style="height:auto;padding:10px 12px;font-family:var(--mono)" bind:value={form.folders} placeholder={`/users/${session.user.username}/projects/reports`}></textarea></label>
       <div class="row" style="justify-content:flex-end"><button type="button" class="btn" onclick={() => (dialog = null)}>Cancel</button><button class="btn pri">Create token</button></div>
     </form>
+  </Modal>
+{/if}
+{#if stopping}
+  <Modal title={`Stop ${stopping.name.replace(/^Sync on /, '')} from syncing?`} onclose={() => (stopping = null)}>
+    <p style="margin:0;font-size:13px;line-height:1.55;color:var(--text-2);overflow-wrap:anywhere">It stops copying new files at once. Files already copied stay where they are. To sync it again later, link it again from the computer.</p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" onclick={() => (stopping = null)}>Keep syncing</button><button class="btn danger" onclick={() => { const d = stopping; stopping = null; revoke(d); }}>Turn off</button></div>
   </Modal>
 {/if}
 {#if created}

@@ -116,3 +116,33 @@ def test_welcome_once(env):
     assert c.post("/api/sync/welcome/done", headers={"x-csrf-token": csrf}).json()["ok"] is True
     assert c.post("/api/sync/welcome/done", headers={"x-csrf-token": csrf}).json()["ok"] is True
     assert c.get("/api/auth/me").json()["welcome"] is False
+
+
+def test_sync_never_replaces_web_files(env):
+    c = _app(env)
+    csrf = _login(c)
+    tok = _link(c, csrf)
+    # Something the person made on the web.
+    r = c.post("/api/fs/upload", data={"folder": "/users/admin/inbox"}, files={"file": ("plan.md", b"mine")},
+               headers={"x-csrf-token": csrf})
+    assert r.status_code == 200, r.text
+    p = _put(c, tok, "plan.md", b"from sync", where="inbox").json()
+    assert p["path"] == "/users/admin/inbox/plan (from ALDAVIS).md"
+    # The synced copy updates itself from then on; the web file is untouched.
+    assert _put(c, tok, "plan.md", b"from sync v2", where="inbox").json()["path"] == p["path"]
+    assert c.get("/api/fs/download", params={"path": "/users/admin/inbox/plan.md"}).content == b"mine"
+
+
+def test_relink_and_racing_polls(env):
+    c = _app(env)
+    csrf = _login(c)
+    t1 = _link(c, csrf)
+    t2 = _link(c, csrf)
+    assert _put(c, t1, "a.md", where="inbox").status_code == 401
+    assert _put(c, t2, "a.md", where="inbox").status_code == 200
+    s = c.post("/api/sync/link/start", json={"computer": "X"}).json()
+    c.post(f"/api/sync/link/{s['code']}/allow", headers={"x-csrf-token": csrf})
+    got = [c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json() for _ in range(3)]
+    assert sum(1 for g in got if g.get("token")) == 1
+    info = c.get(f"/api/sync/link/{s['code']}").json()
+    assert "same_network" in info

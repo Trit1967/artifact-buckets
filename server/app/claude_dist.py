@@ -248,7 +248,8 @@ folders, anything in a hidden folder (such as `~/.ssh`), app data, and anything 
    client's or another employer's work; for each, run the script with `exclude <folder>` and scan again.
    If they say no to copying, stop here: nothing has been sent.
 4. If yes, run the script with `link {base}`. It prints a code and opens the browser at a page that asks the
-   person to allow this computer; the codes must match. The command waits until they press **Allow**.
+   person to allow this computer; the codes must match. The command waits until they press **Allow**, up to
+   ten minutes, so run it with a long timeout (ten minutes) or in the background and check its output.
 5. Then run it with `run`. From now on the plugin's hook copies new and changed files after each reply.
    The person can pause it with `off`, resume with `on`, or turn this computer off on the Connect page.
 
@@ -383,6 +384,11 @@ if (-not $linked) {
     Write-Host $scan.TrimEnd()
     if ($scan -notmatch 'Nothing new to copy') {
       Write-Host ""
+      $ex = Read-Host "  Any folders to keep out, such as a client's work? Type them separated by ; or press Enter"
+      if ($ex -and $ex.Trim()) {
+        foreach ($x in $ex.Split(';')) { if ($x.Trim()) { Sync-Do exclude $x.Trim().Trim('"') } }
+        $scan = (Sync-Do scan | Out-String); Write-Host $scan.TrimEnd(); Write-Host ""
+      }
       $a = Read-Host "  Copy these to your Artifact Buckets folders, and keep new ones in sync? (Y/n)"
       if ($a -notmatch '^\s*[nN]') {
         Sync-Do link $Server
@@ -457,6 +463,14 @@ if ! grep -qs '^token=.' "$dir/sync.conf"; then
     printf '\n'; say "Looking for files Claude has already made on this computer..."
     scan=$(sh "$sync" scan 2>&1 || true); printf '%s\n' "$scan"
     if ! printf '%s' "$scan" | grep -q 'Nothing new to copy'; then
+      printf "\n  Any folders to keep out, such as a client's work? Type them separated by ; or press Enter: "
+      ex=$(head -n 1 </dev/tty 2>/dev/null || true)
+      if [ -n "$(printf '%s' "$ex" | tr -d ' ;')" ]; then
+        printf '%s' "$ex" | tr ';' '\n' | while IFS= read -r x; do
+          x=$(printf '%s' "$x" | sed 's/^ *//; s/ *$//'); [ -z "$x" ] || sh "$sync" exclude "$x" || true
+        done
+        sh "$sync" scan 2>&1 || true
+      fi
       printf '\n  Copy these to your Artifact Buckets folders, and keep new ones in sync? (Y/n) '
       a=$(head -n 1 </dev/tty 2>/dev/null || true)
       case "$a" in

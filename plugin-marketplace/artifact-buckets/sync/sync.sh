@@ -29,7 +29,7 @@ CONF=$DIR/sync.conf
 STATE=$DIR/state
 CLAUDE_DIR=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 umask 077
-mkdir -p "$STATE"
+[ "$CMD" = hook ] || mkdir -p "$STATE"
 
 conf() { [ -f "$CONF" ] && sed -n "s/^$1=//p" "$CONF" | tail -n 1; }
 say() { [ -n "$QUIET" ] || printf '  %s\n' "$*"; }
@@ -66,6 +66,7 @@ link() {
         tok=$(printf '%s' "$r" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
         max=$(printf '%s' "$r" | sed -n 's/.*"max_file_bytes":\([0-9]*\).*/\1/p')
         home=$(printf '%s' "$r" | sed -n 's/.*"home":"\([^"]*\)".*/\1/p')
+        rm -f "$STATE"/sent.tsv "$STATE"/last-run "$STATE"/next-run   # a new link starts afresh
         { echo "server=$srv"; echo "token=$tok"; echo "computer=$name"; echo "home=$home"; echo "max=${max:-524288000}"
           echo "enabled=on"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
         printf '  Linked. Files Claude makes on this computer go to %s\n\n' "$home"
@@ -107,14 +108,17 @@ place() {
     */.*) printf 'skip\thidden\n'; return ;;   # any hidden folder on the way: ~/.ssh, ~/.aws, .config, ...
   esac
   if [ -f "$DIR/exclude" ]; then
+    real=$(cd "${f%/*}" 2>/dev/null && pwd -P)/${f##*/}
     while IFS= read -r x; do
       x=${x%/}; case "$x" in ""|\#*) continue ;; "~"/*) x=$HOME/${x#"~/"} ;; esac
       case "$f" in "$x"/*|"$x") printf 'skip\texcluded\n'; return ;; esac
+      case "$real" in "$x"/*|"$x") printf 'skip\texcluded\n'; return ;; esac
     done < "$DIR/exclude"
   fi
   base=${f##*/}
-  case "$base" in
-    .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.jks|*.keystore|id_rsa*|id_ed25519*|id_ecdsa*|.npmrc|.netrc|.pypirc|*.kdbx|*secret*|*Secret*|*credential*|*Credential*|*.tfstate|*.tfvars)
+  lb=$(printf '%s' "$base" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz')
+  case "$lb" in
+    .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.jks|*.keystore|*.crt|*.cer|*.der|id_rsa*|id_ed25519*|id_ecdsa*|id_dsa*|.npmrc|.netrc|.pypirc|*.kdbx|*secret*|*credential*|*password*|*.tfstate|*.tfstate.*|*.tfvars)
       printf 'skip\tsecret\n'; return ;;
   esac
   size=$(wc -c < "$f" | tr -d ' ')
@@ -186,21 +190,27 @@ sync_() {   # $1 = dry | send
     return 0
   fi
 
-  ok=0; failed=0
+  ok=0; failed=0; skipped=0
+  printf 'authorization: Bearer %s\n' "$TOKEN" > "$STATE/auth"   # read by curl, so the token isn't on its command line
   while IFS="$(printf '\t')" read -r kind where project rel s f; do
     [ "$kind" = send ] || continue
     code=$(curl_ -sS -o "$STATE/resp" -w '%{http_code}' -X PUT --data-binary @"$f" \
-      -H "authorization: Bearer $TOKEN" -H "x-sync-where: $where" -H "x-sync-project: $(b64 "${project#-}")" \
+      -H @"$STATE/auth" -H "x-sync-where: $where" -H "x-sync-project: $(b64 "${project#-}")" \
       -H "x-sync-path: $(b64 "$rel")" -H 'content-type: application/octet-stream' "$SERVER/api/sync/file" 2>/dev/null) || code=000
     case "$code" in
       200) printf '%s\t%s\n' "$where/$project/$rel" "$s" >> "$sent"; ok=$((ok + 1)); say "Copied $rel" ;;
       401) die "This computer's link was turned off. Run: sync.sh link" ;;
       000) failed=$((failed + 1)); say "Couldn't reach the server for $rel" ;;
-      *) failed=$((failed + 1)); say "Not copied: $rel ($(sed -n 's/.*"message":"\([^"]*\)".*/\1/p' "$STATE/resp"))" ;;
+      400|403|404|409|413|415|422)   # the server will refuse this file as it is: don't retry until it changes
+        printf '%s\t%s\n' "$where/$project/$rel" "$s" >> "$sent"; skipped=$((skipped + 1))
+        say "Not copied: $rel ($(sed -n 's/.*"message":"\([^"]*\)".*/\1/p' "$STATE/resp"))" ;;
+      *) failed=$((failed + 1)); say "Not copied yet: $rel (the server said $code)" ;;
     esac
   done < "$plan"
+  rm -f "$STATE/auth"
   [ "$failed" -eq 0 ] && mv "$next" "$marker"   # next time, only history written after this run began
-  if [ "$failed" -gt 0 ]; then say "Done: $ok copied, $failed not copied."; else say "Done: $ok copied."; fi
+  if [ "$failed" -gt 0 ]; then say "Done: $ok copied, $failed not copied yet."
+  elif [ "$skipped" -gt 0 ]; then say "Done: $ok copied, $skipped refused by the server."; else say "Done: $ok copied."; fi
   [ "$failed" -eq 0 ] || say "Files that weren't copied are tried again next time."
 }
 
@@ -217,7 +227,8 @@ case "$CMD" in
   link) link "${2:-}" ;;
   exclude)
     if [ -n "${2:-}" ]; then
-      x=$(cd "$2" 2>/dev/null && pwd) || die "No such folder: $2"
+      x=$(cd "$2" 2>/dev/null && pwd -P) || die "No such folder: $2"
+      [ "$x" != / ] || die "Excluding everything would stop sync altogether. Use: sync.sh off"
       grep -qxF "$x" "$DIR/exclude" 2>/dev/null || echo "$x" >> "$DIR/exclude"; say "Won't copy anything under $x."
     elif [ -s "$DIR/exclude" ]; then say "Never copied:"; while IFS= read -r x; do say "  $x"; done < "$DIR/exclude"
     else say "No folders excluded. Add one with: sync.sh exclude <folder>"; fi ;;
