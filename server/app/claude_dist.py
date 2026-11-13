@@ -263,7 +263,15 @@ turn on syncing (or sync again): then do the "Connect this computer" step and th
 
 Run `claude mcp login {mcp}`. Because the person just connected this computer in the same browser, it goes
 through without another click. (If it shows a sign-in or Connect page anyway, they press Connect.)
-`claude mcp list` should now show `{mcp}` as Connected.
+It only finishes in a terminal, so from your shell tool give it one:
+
+- Linux: `script -qec "claude mcp login {mcp}" /dev/null </dev/null`
+- macOS: `script -q /dev/null claude mcp login {mcp} </dev/null`
+- Windows (PowerShell): `Start-Process (Get-Command claude).Source -ArgumentList 'mcp','login','{mcp}' -Wait`
+  (a console window opens and closes by itself)
+
+`claude mcp list` should now show `{mcp}` as Connected. If it doesn't, ask the person to open a new Claude
+Code window within ten minutes, type `/mcp`, choose artifact-buckets and then Authenticate.
 
 ## {n + 4}. Copy the existing files
 
@@ -431,8 +439,16 @@ else {
   if ($LASTEXITCODE -ne 0) { Stop-Setup "Not connected. Run this again when you're ready."; return }
   # The page just approved this computer, so Claude Code's sign-in goes through without another click.
   Step "Finishing sign-in..."
-  claude mcp login '{{MCP_NAME}}' | Out-Null
-  if ($LASTEXITCODE -ne 0) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
+  # Claude Code's sign-in needs a real console. Run here when this window is one; otherwise (say, when
+  # Claude Code itself runs this script) in a console window of its own that closes when it's done.
+  if (-not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) {
+    claude mcp login '{{MCP_NAME}}'; $signed = ($LASTEXITCODE -eq 0)
+  } else {
+    $exe = (Get-Command claude -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+    try { $p = Start-Process -FilePath $exe -ArgumentList 'mcp', 'login', '{{MCP_NAME}}' -Wait -PassThru -ErrorAction Stop; $signed = ($p.ExitCode -eq 0) }
+    catch { $signed = $false }
+  }
+  if (-not $signed) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
   Step "Signed in"
   $conf = Join-Path $dir 'sync.conf'
   if ((Test-Path $conf) -and ((Get-Content -Raw $conf) -match '(?m)^mode=sync')) { Write-Host ""; Sync-Do run }
@@ -457,6 +473,20 @@ CA_SHA='{{CA_SHA}}'
 say() { printf '  %s\n' "$1"; }
 quit() { printf '\n  %s\n\n' "$1" >&2; exit 1; }
 
+# Claude Code's sign-in only finishes in a terminal. Use this one when there is one (curl | sh from a
+# terminal); otherwise (say, when Claude Code itself runs this) give it a pseudo-terminal of its own.
+signin() {
+  if (: </dev/tty) 2>/dev/null; then   # in a subshell: a failed redirect would end this script
+    claude mcp login '{{MCP_NAME}}' </dev/tty >/dev/tty 2>&1
+  elif [ "$(uname)" = Darwin ]; then
+    script -q /dev/null claude mcp login '{{MCP_NAME}}' </dev/null >/dev/null 2>&1
+  elif command -v script >/dev/null 2>&1; then
+    script -qec "claude mcp login '{{MCP_NAME}}'" /dev/null </dev/null >/dev/null 2>&1
+  else
+    return 1
+  fi
+}
+
 printf '\n  Artifact Buckets\n  Connecting Claude Code to %s\n\n' "$SERVER"
 command -v claude >/dev/null 2>&1 || quit "Claude Code isn't installed yet. Install it first (curl -fsSL https://claude.ai/install.sh | bash), then run this again."
 dir="$HOME/.artifact-buckets"; mkdir -p "$dir"
@@ -479,6 +509,7 @@ if [ -n "$CA_URL" ]; then
     if ! grep -qsE "Artifact Buckets (lab|server) certificate" "$rc"; then
       # Start on a new line if the file doesn't end with one; add nothing else, so removing it leaves no trace.
       [ ! -s "$rc" ] || [ -z "$(tail -c 1 "$rc")" ] || printf '\n' >> "$rc"
+      [ -e "$rc" ] || printf '%s\n' "$rc" >> "$dir/created-profiles"   # so removing it can delete only what it made
       printf '%s\n' "$line" >> "$rc"
     fi
   done
@@ -506,7 +537,7 @@ else
   sh "$sync" link "$SERVER" </dev/null || quit "Not connected. Run this again when you're ready."
   # The page just approved this computer, so Claude Code's sign-in goes through without another click.
   say "Finishing sign-in..."
-  claude mcp login '{{MCP_NAME}}' </dev/null >/dev/null || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
+  signin || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
   say "Signed in"
   if grep -qs '^mode=sync' "$dir/sync.conf"; then printf '\n'; sh "$sync" run || true; fi
 fi
@@ -602,7 +633,8 @@ fi
 for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
   if grep -qsE "Artifact Buckets (lab|server) certificate" "$rc"; then
     sed -i.ab-bak -E '/Artifact Buckets (lab|server) certificate/d' "$rc" && rm -f "$rc.ab-bak" && say "Removed the certificate line from $rc"
-    [ -s "$rc" ] || rm -f "$rc"   # setup created it just for that line
+    # Delete the file only if setup created it just for that line and nothing else was added since.
+    if [ ! -s "$rc" ] && grep -qsxF "$rc" "$dir/created-profiles"; then rm -f "$rc"; fi
   fi
 done
 if [ "$(uname)" = Darwin ] && [ -n "$CA_SHA" ]; then

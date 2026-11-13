@@ -47,18 +47,28 @@ curl_() {
 }
 
 # The folders a first copy would fill, as JSON for the Connect page: [{"folder","files","bytes","source"}].
+# The server lists up to 2000; any folders past that are written to $DIR/link-overflow and never copied.
 folders_json() {
   plan=$STATE/plan.tsv
+  : > "$DIR/link-overflow"
   [ -s "$plan" ] || { printf '[]'; return; }
   grep '^send' "$plan" | while IFS="$(printf '\t')" read -r _ where project rel _ f; do
     if [ "$where" = projects ]; then folder="projects/$project"; src=${f%/"$rel"}; else folder=inbox; src=""; fi
     printf '%s\t%s\t%s\n' "$folder" "$(wc -c < "$f" | tr -d ' ')" "$src"
-  done | awk -F'\t' '
+  done | awk -F'\t' -v ov="$DIR/link-overflow" '
     function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/[\001-\037]/, "", s); return s }
     { n[$1]++; b[$1] += $2; if (!($1 in s)) s[$1] = $3; if (!($1 in o)) { o[$1] = ++k; key[k] = $1 } }
-    END { printf "["; for (i = 1; i <= k && i <= 200; i++) { f = key[i]
+    END { printf "["; for (i = 1; i <= k && i <= 2000; i++) { f = key[i]
             printf "%s{\"folder\":\"%s\",\"files\":%d,\"bytes\":%d,\"source\":\"%s\"}", (i > 1 ? "," : ""), esc(f), n[f], b[f], esc(s[f]) }
-          printf "]" }'
+          printf "]"; for (; i <= k; i++) print key[i] > ov }'
+}
+
+# A random id this computer keeps, so two computers with the same name stay apart on the server.
+computer_id() {
+  id=$(cat "$DIR/computer-id" 2>/dev/null || true)
+  case "$id" in ????????????????*) ;; *)
+    id=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'); printf '%s\n' "$id" > "$DIR/computer-id" ;; esac
+  printf '%s' "$id" | tr -cd 'A-Za-z0-9_-' | cut -c1-64
 }
 
 link() {
@@ -74,7 +84,7 @@ link() {
   STATE=$DIR/link-scan; rm -rf "$STATE"; mkdir -p "$STATE"; SKIPF=/dev/null; QUIET=1
   sync_ dry; folders=$(folders_json)
   rm -rf "$STATE"; STATE=$keep_state; SKIPF=$keep_skip; QUIET=$q
-  body=$(printf '{"computer":"%s","folders":%s}' "$(printf '%s' "$name" | tr -d '"\\')" "$folders")
+  body=$(printf '{"computer":"%s","computer_id":"%s","folders":%s}' "$(printf '%s' "$name" | tr -d '"\\')" "$(computer_id)" "$folders")
   start=$(printf '%s' "$body" | curl_ -fsS -X POST -H 'content-type: application/json' --data-binary @- "$srv/api/sync/link/start") \
     || die "Couldn't reach $srv"
   code=$(printf '%s' "$start" | sed -n 's/.*"code":"\([^"]*\)".*/\1/p')
@@ -99,6 +109,7 @@ link() {
         for x in $(printf '%s' "$r" | sed -n 's/.*"skip_b64":"\([^"]*\)".*/\1/p' | tr ',' ' '); do
           printf '%s' "$x" | { base64 -d 2>/dev/null || base64 -D; } >> "$SKIPF.new"; printf '\n' >> "$SKIPF.new"
         done
+        cat "$DIR/link-overflow" >> "$SKIPF.new" 2>/dev/null || true
         mv "$SKIPF.new" "$SKIPF"
         if [ "$st" = approved ]; then en=on; mode=sync; else en=off; mode=connect; fi
         { echo "server=$srv"; echo "token=$tok"; echo "computer=$name"; echo "home=$home"; echo "max=${max:-524288000}"
@@ -260,7 +271,8 @@ lock() {
     if [ -n "$(find "$DIR/lock" -maxdepth 0 -mmin +30 2>/dev/null)" ]; then rmdir "$DIR/lock" 2>/dev/null; mkdir "$DIR/lock" 2>/dev/null || exit 0
     else [ -n "$QUIET" ] && exit 0; die "Another sync is running."; fi
   fi
-  trap 'rmdir "$DIR/lock" 2>/dev/null' EXIT INT TERM
+  trap 'rmdir "$DIR/lock" 2>/dev/null' EXIT
+  trap 'exit 130' INT TERM
 }
 
 case "$CMD" in

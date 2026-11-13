@@ -207,7 +207,9 @@ def approve(request: Request, client_id: str = Form(...), redirect_uri: str = Fo
         if _loopback(redirect_uri):
             from . import sync
             plan = sync.recent_plan(db, user.id, request.cookies.get(SESSION_COOKIE))
-            if plan is not None:
+            # Only the first real sign-in after connecting: a client that took the pass but never finished
+            # signing in doesn't keep it.
+            if plan is not None and (not plan.client_id or not sync.client_signed_in(db, user.id, plan.client_id)):
                 sync.attach_client(db, plan, client.client_id)
         return _issue_code(db, actor, client, redirect_uri, state, code_challenge)
 

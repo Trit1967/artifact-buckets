@@ -2,6 +2,7 @@
 and that same press lets Claude Code's sign-in through. Plus disconnecting a computer from the computer."""
 from __future__ import annotations
 
+import base64
 import datetime as dt
 from urllib.parse import parse_qs, urlparse
 
@@ -16,11 +17,15 @@ FOLDERS = [
 ]
 
 
-def _start(app, folders=FOLDERS, computer="WORK-LAPTOP"):
+def _start(app, folders=FOLDERS, computer="WORK-LAPTOP", computer_id=None):
     c = TestClient(app)
-    r = c.post("/api/sync/link/start", json={"computer": computer, "folders": folders})
+    body = {"computer": computer, "folders": folders, **({"computer_id": computer_id} if computer_id else {})}
+    r = c.post("/api/sync/link/start", json=body)
     assert r.status_code == 200, r.text
     return c, r.json()
+
+
+CID = "k3J9x-computer-id-0001"
 
 
 def _authorize(app, web, redirect="http://127.0.0.1:33418/callback"):
@@ -225,7 +230,7 @@ def test_scripts_served(app):
     served = c.get("/claude/sync.ps1").content
     assert hashlib.sha256(served).hexdigest().upper() in ps1
     sh = c.get("/claude/install.sh").text
-    assert "add-trusted-cert" not in sh and "/dev/tty" not in sh
+    assert "add-trusted-cert" not in sh and "signin ||" in sh and "script -qec" in sh
     md = c.get("/claude/setup.md").text
     assert "Removing Artifact Buckets" in md and "Connect and copy" in md
     assert hashlib.sha256(served).hexdigest().upper() in md
@@ -277,7 +282,7 @@ def test_client_registered_before_the_approval_gets_no_shortcut(app, admin):
 
 
 def test_relink_keeps_the_sign_in_attached_and_opens_no_window(app, admin):
-    c, s = _start(app)
+    c, s = _start(app, computer_id=CID)
     admin.post(f"/api/sync/link/{s['code']}/allow")
     c.post("/api/sync/link/poll", json={"poll": s["poll"]})
     tc, cid, verifier, q, r = _authorize(app, admin)
@@ -285,7 +290,7 @@ def test_relink_keeps_the_sign_in_attached_and_opens_no_window(app, admin):
     access = tc.post("/oauth/token", data={"grant_type": "authorization_code", "code": code, "client_id": cid,
                                            "redirect_uri": q["redirect_uri"], "code_verifier": verifier}).json()["access_token"]
     # Later: connect again (say to change which folders sync). Claude Code is already signed in.
-    c2, s2 = _start(app)
+    c2, s2 = _start(app, computer_id=CID)
     admin.post(f"/api/sync/link/{s2['code']}/connect")
     p2 = c2.post("/api/sync/link/poll", json={"poll": s2["poll"]}).json()
     assert _authorize(app, admin)[4].headers["location"].startswith("/consent?")   # no silent pass
@@ -310,3 +315,44 @@ def test_hand_approved_sign_in_after_connecting_is_the_one_removed(app, admin):
     tc.post("/api/sync/unlink", headers={"authorization": f"Bearer {p['token']}"})
     mcp = {"authorization": f"Bearer {access}", "accept": "application/json, text/event-stream"}
     assert tc.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, headers=mcp).status_code == 401
+
+
+def test_two_computers_with_the_same_name_keep_their_own_keys(app, admin):
+    keys = []
+    for cid in ("aaaaaaaaaaaaaaaa-one", "bbbbbbbbbbbbbbbb-two"):
+        c, s = _start(app, computer="LAPTOP", computer_id=cid)
+        admin.post(f"/api/sync/link/{s['code']}/allow")
+        keys.append(c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()["token"])
+    c = TestClient(app)
+    hd = lambda k, n: {"authorization": f"Bearer {k}", "x-sync-where": "inbox",
+                       "x-sync-path": base64.b64encode(n.encode()).decode()}
+    for k in keys:   # the second computer didn't knock the first one off
+        r = c.put("/api/sync/file", content=b"x", headers=hd(k, "a.txt"))
+        assert r.status_code in (200, 201), r.text
+    # The same computer connecting again replaces its own key only.
+    c2, s2 = _start(app, computer="LAPTOP", computer_id="aaaaaaaaaaaaaaaa-one")
+    admin.post(f"/api/sync/link/{s2['code']}/allow")
+    c2.post("/api/sync/link/poll", json={"poll": s2["poll"]})
+    assert c.put("/api/sync/file", content=b"x", headers=hd(keys[0], "b.txt")).status_code == 401
+    assert c.put("/api/sync/file", content=b"x", headers=hd(keys[1], "b.txt")).status_code in (200, 201)
+
+
+def test_a_later_hand_approved_sign_in_does_not_take_over(app, admin):
+    c, s = _start(app, computer_id=CID)
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    p = c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()
+    tc, cid, verifier, q, r = _authorize(app, admin)          # the one-click sign-in, finished
+    code = parse_qs(urlparse(r.headers["location"]).query)["code"][0]
+    access = tc.post("/oauth/token", data={"grant_type": "authorization_code", "code": code, "client_id": cid,
+                                           "redirect_uri": q["redirect_uri"], "code_verifier": verifier}).json()["access_token"]
+    oc, ocid, ov, oq, orr = _authorize(app, admin, redirect="http://127.0.0.1:9/other")   # another app, by hand
+    assert orr.headers["location"].startswith("/consent?")
+    ap = admin.c.post("/oauth/approve", data={**oq, "decision": "allow", "csrf": admin.csrf})
+    ocode = parse_qs(urlparse(ap.headers["location"]).query)["code"][0]
+    other = oc.post("/oauth/token", data={"grant_type": "authorization_code", "code": ocode, "client_id": ocid,
+                                          "redirect_uri": oq["redirect_uri"], "code_verifier": ov}).json()["access_token"]
+    tc.post("/api/sync/unlink", headers={"authorization": f"Bearer {p['token']}"})
+    ping = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+    h = lambda t: {"authorization": f"Bearer {t}", "accept": "application/json, text/event-stream"}
+    assert tc.post("/mcp", json=ping, headers=h(access)).status_code == 401
+    assert tc.post("/mcp", json=ping, headers=h(other)).status_code == 200

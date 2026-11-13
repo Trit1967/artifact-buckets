@@ -31,7 +31,10 @@
   const allOn = $derived(folders.length > 0 && chosen.length === folders.length);
   const label = (f) => f.label || (f.folder === 'inbox' ? 'Loose files' : f.folder.slice('projects/'.length));
   // The end of a path is the part people recognise.
-  const tail = (p) => (p.length > 34 ? '…' + p.slice(-33) : p);
+  // Keep the end of a long path (the project's own folder), sized to the screen so it isn't cut again.
+  let width = $state(typeof window === 'undefined' ? 1024 : window.innerWidth);
+  const room = $derived(width < 420 ? 26 : width < 560 ? 34 : 46);
+  const tail = (p, n) => (p.length > n ? '…' + p.slice(-(n - 1)) : p);
   const dest = (f) => `${home}/${f.folder}`;
 
   function toggle(f) { const k = new Set(keep); k.has(f.folder) ? k.delete(f.folder) : k.add(f.folder); keep = k; }
@@ -48,6 +51,8 @@
   const chars = $derived((info?.code || code).split(''));
   const files = (n) => `${n.toLocaleString()} file${n === 1 ? '' : 's'}`;
 </script>
+
+<svelte:window bind:innerWidth={width} />
 
 <div class="wrap">
   <div class="card box">
@@ -122,14 +127,14 @@
                   <span class="fi"><Icon name={f.folder === 'inbox' ? 'inbox' : 'folder'} size={15} /></span>
                   <span class="fn">
                     <span class="nm">{label(f)}</span>
-                    {#if f.source}<span class="src mono" title={f.source}>{tail(f.source)}</span>{:else}<span class="src">Files from outside a project</span>{/if}
+                    {#if f.source}<span class="src mono" title={f.source}>{tail(f.source, room)}</span>{:else}<span class="src">Files from outside a project</span>{/if}
                   </span>
                   <span class="ct">{files(f.files)}<span class="sz">{bytes(f.bytes)}</span></span>
                 </label>
               </li>
             {/each}
           </ul>
-          {#if info.hidden}<p class="note warnline"><Icon name="info" size={13} /> {info.hidden} more {info.hidden === 1 ? 'folder' : 'folders'} with unusual names {info.hidden === 1 ? 'isn’t' : 'aren’t'} listed, and won’t be copied.</p>{/if}
+          {#if info.hidden}<p class="note warnline"><Icon name="info" size={13} /> {info.hidden} more {info.hidden === 1 ? 'folder isn’t' : 'folders aren’t'} listed here (unusual names, or past the first 200), and won’t be copied.</p>{/if}
           <p class="note">Copies go to <span class="mono">{home}/projects</span> and <span class="mono">inbox</span>, then new files follow after each Claude Code reply. Secrets, build folders and anything in git are always left out.</p>
         {:else}
           <div class="bh"><div>

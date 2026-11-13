@@ -59,7 +59,10 @@ class LinkPlan(Base):
     Claude Code on that computer: the next sign-in from the same browser within ten minutes needs no
     second click. Its own table, so existing databases pick it up without a migration."""
     __tablename__ = "sync_link_plans"
-    link_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    link_id: Mapped[int | None] = mapped_column(Integer, index=True)   # None once the link request is gone
+    computer_id: Mapped[str | None] = mapped_column(String(64), index=True)  # random id the computer keeps
     folders: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     keep: Mapped[list[str] | None] = mapped_column(JSON)
     hidden: Mapped[list[str] | None] = mapped_column(JSON)  # folders the page couldn't show: never copied
@@ -96,6 +99,24 @@ def _clean_computer(name: str) -> str:
     return (name or "This computer")[:64]
 
 
+def _plan(db: Session, link_id: int) -> LinkPlan | None:
+    return db.scalar(select(LinkPlan).where(LinkPlan.link_id == link_id).order_by(LinkPlan.id.desc()).limit(1))
+
+
+def _computer_tokens(db: Session, user_id: int, plan: LinkPlan | None, computer: str) -> list[Token]:
+    """The live keys this same computer was given before. Matched by the computer's own random id; computers
+    set up before it had one are matched by name."""
+    if plan is not None and plan.computer_id:
+        ids = [p.token_id for p in db.scalars(select(LinkPlan).where(LinkPlan.computer_id == plan.computer_id,
+                                                                     LinkPlan.token_id.is_not(None)))]
+        if not ids:
+            return []
+        q = select(Token).where(Token.id.in_(ids))
+    else:
+        q = select(Token).where(Token.name == f"Sync on {computer}")
+    return list(db.scalars(q.where(Token.user_id == user_id, Token.kind == "sync", Token.revoked.is_(False))))
+
+
 def _link_row(db: Session, code: str) -> SyncLink:
     row = db.scalar(select(SyncLink).where(SyncLink.user_code == code.strip().upper()))
     if row is None or row.created_at < utcnow() - dt.timedelta(minutes=LINK_MINUTES):
@@ -114,6 +135,7 @@ class FolderInfo(BaseModel):
 
 class StartBody(BaseModel):
     computer: str = Field("", max_length=4096)   # trimmed to 64 below
+    computer_id: str = Field("", max_length=64)  # a random id the computer keeps, so two "MacBook-Pro"s differ
     folders: list[FolderInfo] = Field([], max_length=2000)
 
 
@@ -152,9 +174,11 @@ def _clean_folders(items: list[FolderInfo]) -> tuple[list[dict[str, Any]], list[
 def link_start(body: StartBody, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     # Old requests are only useful for ten minutes.
     for old in db.scalars(select(SyncLink).where(SyncLink.created_at < utcnow() - dt.timedelta(hours=1))):
-        p = db.get(LinkPlan, old.id)
-        if p is not None:
-            db.delete(p)
+        for p in db.scalars(select(LinkPlan).where(LinkPlan.link_id == old.id)):
+            if p.token_id is None:
+                db.delete(p)
+            else:
+                p.link_id = None   # keep which computer and sign-in its key belongs to
         db.delete(old)
     db.flush()
     poll = secrets.token_urlsafe(32)
@@ -165,12 +189,15 @@ def link_start(body: StartBody, request: Request, db: Session = Depends(get_db))
                    ip=request.client.host if request.client else None)
     db.add(row)
     db.flush()
-    stale = db.get(LinkPlan, row.id)   # SQLite can hand out a deleted row's id again
-    if stale is not None:
-        db.delete(stale)
-        db.flush()
+    for stale in db.scalars(select(LinkPlan).where(LinkPlan.link_id == row.id)):   # SQLite can reuse a deleted id
+        if stale.token_id is None:
+            db.delete(stale)
+        else:
+            stale.link_id = None
+    db.flush()
     shown, hidden = _clean_folders(body.folders)
-    db.add(LinkPlan(link_id=row.id, folders=shown, hidden=hidden))
+    cid = body.computer_id if re.fullmatch(r"[A-Za-z0-9_-]{16,64}", body.computer_id or "") else None
+    db.add(LinkPlan(link_id=row.id, computer_id=cid, folders=shown, hidden=hidden))
     db.commit()
     base = config.settings.base_url
     return {"code": code, "poll": poll, "link": f"{base}/link?code={code}", "interval": 2, "expires_in": LINK_MINUTES * 60}
@@ -195,16 +222,17 @@ def link_poll(body: PollBody, db: Session = Depends(get_db)) -> dict[str, Any]:
     if won.rowcount != 1:
         db.rollback()
         return {"status": "done"}
-    plan = db.get(LinkPlan, row.id)
+    plan = _plan(db, row.id)
     home = f"/users/{u.username}"
     syncing = plan is None or plan.sync
     name = f"Sync on {row.computer}"
-    # Linking the same computer again replaces its earlier link, and keeps its Claude Code sign-in attached.
+    # Linking the same computer again replaces its earlier link, and keeps its Claude Code sign-in attached
+    # (only when it's provably the same computer, by its own id).
     client_id = plan.client_id if plan is not None else None
-    for old in db.scalars(select(Token).where(Token.user_id == u.id, Token.kind == "sync", Token.name == name,
-                                              Token.revoked.is_(False))):
+    for old in _computer_tokens(db, u.id, plan, row.computer):
         old.revoked = True
-        client_id = client_id or old.client_id
+        if plan is not None and plan.computer_id:
+            client_id = client_id or old.client_id
     # Connected without syncing still gets a computer key, so removing Artifact Buckets from the computer can
     # end its sign-in here; it just can't add files (scope "read").
     raw, tok = issue_token(db, u, name=name, kind="sync", scope="write" if syncing else "read",
@@ -350,7 +378,7 @@ def link_info(code: str, request: Request, db: Session = Depends(get_db)) -> dic
         raise Forbidden("Approve this in the web app")
     row = _link_row(db, code)
     here = request.client.host if request.client else None
-    plan = db.get(LinkPlan, row.id)
+    plan = _plan(db, row.id)
     return {"code": row.user_code, "computer": row.computer, "status": row.status,
             "same_network": bool(row.ip and here and row.ip == here), "from_ip": row.ip,
             "age_seconds": int((utcnow() - row.created_at).total_seconds()),
@@ -376,7 +404,7 @@ def link_decide(code: str, decision: str, request: Request, body: DecideBody | N
         raise NotFound("Not found")
     row.status = "denied" if decision == "deny" else "approved"
     row.user_id = actor.user.id
-    plan = db.get(LinkPlan, row.id)
+    plan = _plan(db, row.id)
     if plan is None:
         plan = LinkPlan(link_id=row.id, folders=[])
         db.add(plan)
@@ -389,7 +417,7 @@ def link_decide(code: str, decision: str, request: Request, body: DecideBody | N
         plan.approved_at = utcnow()
         # Claude Code on this computer is already signed in (connecting again to change syncing): there's no
         # sign-in to wave through, so don't open a window for one.
-        if _signed_in(db, actor.user.id, row.computer):
+        if _signed_in(db, actor.user.id, plan):
             plan.oauth_used = True
     audit.log(db, actor, {"allow": "sync.approve", "connect": "sync.connect_only", "deny": "sync.deny"}[decision],
               row.computer)
@@ -397,10 +425,10 @@ def link_decide(code: str, decision: str, request: Request, body: DecideBody | N
     return {"status": row.status, "computer": row.computer, "sync": decision == "allow"}
 
 
-def _signed_in(db: Session, user_id: int, computer: str) -> bool:
-    prev = db.scalars(select(Token.client_id).where(Token.user_id == user_id, Token.kind == "sync",
-                                                    Token.name == f"Sync on {computer}", Token.revoked.is_(False),
-                                                    Token.client_id.is_not(None))).all()
+def _signed_in(db: Session, user_id: int, plan: LinkPlan) -> bool:
+    if not plan.computer_id:
+        return False
+    prev = [t.client_id for t in _computer_tokens(db, user_id, plan, "") if t.client_id]
     if not prev:
         return False
     if db.scalar(select(Token.id).where(Token.user_id == user_id, Token.client_id.in_(prev),
@@ -409,6 +437,12 @@ def _signed_in(db: Session, user_id: int, computer: str) -> bool:
     # Or the sign-in is still being finished (a code was handed out and not yet swapped).
     return db.scalar(select(OAuthCode.code_hash).where(OAuthCode.user_id == user_id, OAuthCode.client_id.in_(prev),
                                                        OAuthCode.used.is_(False), OAuthCode.expires_at > utcnow())) is not None
+
+
+def client_signed_in(db: Session, user_id: int, client_id: str) -> bool:
+    """True once this client has swapped its code for a live sign-in."""
+    return db.scalar(select(Token.id).where(Token.user_id == user_id, Token.client_id == client_id,
+                                            Token.kind == "oauth_refresh", Token.revoked.is_(False))) is not None
 
 
 def recent_plan(db: Session, user_id: int, session_cookie: str | None) -> LinkPlan | None:
@@ -438,9 +472,11 @@ def preapproved(db: Session, user_id: int, session_cookie: str | None, client_cr
         row = db.get(SyncLink, plan.link_id)
         if row is None or row.user_id != user_id or row.status not in ("approved", "done"):
             continue
-        if plan.approved_at is None or client_created < plan.approved_at - dt.timedelta(seconds=5):
+        # Claude Code registers itself when it starts signing in, so a client older than this link request
+        # is something else.
+        if plan.approved_at is None or client_created < row.created_at - dt.timedelta(seconds=5):
             continue
-        won = db.execute(update(LinkPlan).where(LinkPlan.link_id == plan.link_id, LinkPlan.oauth_used.is_(False))
+        won = db.execute(update(LinkPlan).where(LinkPlan.id == plan.id, LinkPlan.oauth_used.is_(False))
                          .values(oauth_used=True))
         if won.rowcount != 1:
             continue

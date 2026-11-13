@@ -195,6 +195,14 @@ function Use-Network {
 }
 
 # ---- link -----------------------------------------------------------------------------------
+# A random id this computer keeps, so two computers with the same name stay apart on the server.
+function Get-ComputerId {
+  $f = Join-Path $Dir 'computer-id'
+  $id = if (Test-Path -LiteralPath $f) { ([IO.File]::ReadAllText($f)).Trim() } else { '' }
+  if ($id -notmatch '^[A-Za-z0-9_-]{16,64}$') { $id = [guid]::NewGuid().ToString('N'); [IO.File]::WriteAllText($f, $id) }
+  return $id
+}
+
 function Link([string]$srv) {
   if (-not $srv) { $srv = $C['server'] }
   if (-not $srv) { Die 'Give the server address: sync.ps1 link https://buckets.example.com' }
@@ -215,8 +223,10 @@ function Link([string]$srv) {
     Remove-Item -LiteralPath $script:State -Recurse -Force -ErrorAction SilentlyContinue
     $script:State = $keepState; $script:SkipFolders = $keepSkip; $script:Quiet = $q
   }
-  $folders = @($script:LastSend | Group-Object { if ($_.Where -eq 'projects') { "projects/$($_.Project)" } else { 'inbox' } } |
-    Select-Object -First 200 | ForEach-Object {
+  # The server lists up to 2000 folders; any past that are never copied.
+  $groups = @($script:LastSend | Group-Object { if ($_.Where -eq 'projects') { "projects/$($_.Project)" } else { 'inbox' } })
+  $overflow = @($groups | Select-Object -Skip 2000 | ForEach-Object { $_.Name })
+  $folders = @($groups | Select-Object -First 2000 | ForEach-Object {
       $g = $_.Group
       $src = if ($g[0].Where -eq 'projects') { $g[0].File.Substring(0, $g[0].File.Length - $g[0].Rel.Length - 1) } else { '' }
       @{ folder = $_.Name; files = $g.Count; bytes = [long](($g | ForEach-Object { (New-Object IO.FileInfo $_.File).Length } | Measure-Object -Sum).Sum); source = $src }
@@ -224,7 +234,7 @@ function Link([string]$srv) {
   Use-Network
   try {
     $s = Invoke-RestMethod -Method Post -Uri "$srv/api/sync/link/start" -ContentType 'application/json; charset=utf-8' `
-      -Body ($Utf8.GetBytes((@{ computer = $name; folders = $folders } | ConvertTo-Json -Depth 4 -Compress))) -UseBasicParsing
+      -Body ($Utf8.GetBytes((@{ computer = $name; computer_id = (Get-ComputerId); folders = $folders } | ConvertTo-Json -Depth 4 -Compress))) -UseBasicParsing
   } catch { Die "Couldn't reach $srv ($($_.Exception.Message))" }
   Write-Host ''
   Write-Host "  Finish in your browser: $($s.link)"
@@ -243,7 +253,7 @@ function Link([string]$srv) {
         # A new link starts afresh: everything it is allowed to copy is copied again (the server skips files
         # it already has).
         Remove-Item -LiteralPath (Join-Path $State 'sent.tsv'), (Join-Path $State 'last-run'), (Join-Path $State 'next-run') -Force -ErrorAction SilentlyContinue
-        $skip = @($r.skip | Where-Object { $_ })
+        $skip = @(@($r.skip) + $overflow | Where-Object { $_ })
         [IO.File]::WriteAllLines($SkipFile, [string[]]$skip, $Utf8)
         $sync = $r.status -eq 'approved'
         $script:C = @{ server = $srv; token = $r.token; computer = $name; home = $r.home; max = "$max"
