@@ -1,0 +1,16 @@
+# HTTPS front end for a docker compose install without install.sh (the installer writes its own).
+# AB_TLS=internal: a certificate from Caddy's own CA (browsers warn until you trust its root).
+# AB_TLS=you@example.com: a Let's Encrypt certificate for AB_HOSTNAME (must be reachable on ports 80 and 443).
+{
+	admin off
+}
+
+{$AB_HOSTNAME:localhost} {
+	tls {$AB_TLS:internal}
+	encode zstd gzip
+	request_body {
+		max_size 700MB
+	}
+	reverse_proxy app:8080
+	header -Server
+}

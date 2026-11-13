@@ -36,7 +36,8 @@ def startup() -> None:
     init_engine(config.settings.database_url)
     os.makedirs(paths.tree_root(), exist_ok=True)
     with new_session() as db:
-        accounts.bootstrap(db, config.settings.bootstrap_admin, config.settings.bootstrap_password)
+        accounts.bootstrap(db, config.settings.bootstrap_admin, config.settings.bootstrap_password,
+                           config.settings.bootstrap_email)
         storage.scan(db)
         # After a reboot the fstab line may list disks that were drained or never added; put back the app's list.
         try:

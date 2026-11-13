@@ -23,6 +23,51 @@ browse, preview, version, share and organize in the browser, or open the same fo
           AD (LDAPS) ◀── app: people and AB- groups      Entra ID ◀── app: browser sign-in
 ```
 
+## Install
+
+On a Linux machine with a name or address people can reach:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Trit1967/artifact-buckets/main/install.sh | sudo sh
+```
+
+It asks for the address people will use and an admin email, installs Docker if it's missing, and
+starts the app with HTTPS:
+
+- **A public name** (it resolves to a public IP, ports 80 and 443 free): a Let's Encrypt certificate.
+- **A LAN name or an IP address:** a self-signed certificate for that address only. The Claude Code setup
+  line offers to trust it on each computer.
+- **ZFS present:** it offers to keep files on their own dataset with automatic restore points.
+  Otherwise files are plain folders.
+
+At the end it prints the address, the admin password and the one line that connects Claude Code.
+
+Everything lives in `/opt/artifact-buckets` (settings, files, database, certificates) plus three
+containers. Nothing else on the machine changes, apart from Docker if it had to be installed.
+
+```bash
+sudo artifact-buckets status       # what's running
+sudo artifact-buckets logs         # follow the logs (add app, caddy or db)
+sudo artifact-buckets upgrade      # newest version; settings and data stay
+sudo artifact-buckets uninstall    # remove it; files and database stay in /opt/artifact-buckets
+sudo artifact-buckets uninstall --purge   # remove it and delete all its data
+```
+
+No questions (for scripts and cloud-init):
+
+```bash
+curl -fsSL .../install.sh | sudo sh -s -- --host files.example.com --email you@example.com --yes
+```
+
+`install.sh --help` lists the rest: your own certificate (`--tls files --cert --key`), other ports,
+a ZFS pool, building the image from source, and an extra CA for builds behind a TLS-inspecting proxy.
+
+**Without the installer:** `deploy/install/compose.yml` is plain Docker Compose. From a clone,
+`cd deploy/install && cp env.example .env`, fill it in, then `docker compose up -d --build`.
+
+The rest of this README covers the full deployment with Active Directory, Entra sign-in and the
+Windows share.
+
 ## Repository layout
 
 | Path | What |
@@ -33,6 +78,7 @@ browse, preview, version, share and organize in the browser, or open the same fo
 | `deploy/caddy`, `deploy/samba` | TLS front end, and the domain-joined Samba container. |
 | `docs/FEATURES.md` | Every feature with an ID, what it must do, and its status. |
 | `docs/TEST_RESULTS.md` | What was tested, how, and the results, including the independent QA pass. |
+| `install.sh`, `deploy/install/` | One-line install for a Linux host, and its plain Docker Compose file. |
 | `docker-compose.yml`, `.env.example` | Lab deployment. |
 
 ## Lab deployment

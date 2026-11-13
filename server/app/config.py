@@ -48,6 +48,7 @@ class Settings:
     # First admin, created on first start if no users exist.
     bootstrap_admin: str = field(default_factory=lambda: os.environ.get("AB_BOOTSTRAP_ADMIN", "admin"))
     bootstrap_password: str | None = field(default_factory=lambda: os.environ.get("AB_BOOTSTRAP_PASSWORD"))
+    bootstrap_email: str | None = field(default_factory=lambda: os.environ.get("AB_BOOTSTRAP_EMAIL") or None)
     # Active Directory (LDAP) group and user sync.
     ldap_url: str | None = field(default_factory=lambda: os.environ.get("AB_LDAP_URL"))
     ldap_bind_dn: str | None = field(default_factory=lambda: os.environ.get("AB_LDAP_BIND_DN"))

@@ -206,7 +206,7 @@ def group_info(db: Session, g: Group, with_members: bool = False) -> dict[str, A
     return out
 
 
-def bootstrap(db: Session, username: str, password: str | None) -> User | None:
+def bootstrap(db: Session, username: str, password: str | None, email: str | None = None) -> User | None:
     """Create the first admin when the database is empty."""
     if db.scalar(select(func.count()).select_from(User)):
         return None
@@ -214,7 +214,8 @@ def bootstrap(db: Session, username: str, password: str | None) -> User | None:
         fs.ensure_dir(top)
     if not password:
         return None
-    u = create_user(db, None, username=username, password=password, system_role="admin", display_name="Administrator")
+    u = create_user(db, None, username=username, password=password, system_role="admin", display_name="Administrator",
+                    email=email)
     db.commit()
     return u
 
