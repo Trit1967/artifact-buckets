@@ -106,7 +106,11 @@ env_set() { # env_set KEY VALUE (replaces any earlier line)
 }
 
 # One compose project (and local image) per install folder, so two installs never share containers.
-project() { if [ "$DIR" = "/opt/$APP_SLUG" ]; then printf '%s' "$APP_SLUG"; else printf '%s-%s' "$APP_SLUG" "$(basename "$DIR" | tr -c 'a-z0-9_-' '-' | sed 's/-*$//')"; fi; }
+project() {
+  if [ "$DIR" = "/opt/$APP_SLUG" ]; then printf '%s' "$APP_SLUG"; return; fi
+  _h=$(printf '%s' "$DIR" | cksum | cut -d' ' -f1)
+  printf '%s-%s-%s' "$APP_SLUG" "$(basename "$DIR" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '-' | sed 's/-*$//' | cut -c1-20)" "$_h"
+}
 compose() { (cd "$DIR" && docker compose -p "$(project)" "$@"); }
 
 is_ip() { printf '%s' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; }
@@ -204,7 +208,7 @@ fetch_source() {
       http://*|https://*) fetch "$SOURCE" "$DIR/src.tar.gz" || { rm -rf "$_new" "$DIR/src.tar.gz"; die "Couldn't download $SOURCE (if the repository is private, run install.sh from a clone instead)."; } ;;
       *) [ -f "$SOURCE" ] || { rm -rf "$_new"; die "No such source: $SOURCE"; }; cp "$SOURCE" "$DIR/src.tar.gz" ;;
     esac
-    tar -xzf "$DIR/src.tar.gz" -C "$_new" --strip-components=1 || { rm -rf "$_new" "$DIR/src.tar.gz"; die "$SOURCE isn't a readable .tar.gz."; }
+    tar -xzf "$DIR/src.tar.gz" -C "$_new" --strip-components=1 2>/dev/null || { rm -rf "$_new" "$DIR/src.tar.gz"; die "$SOURCE isn't a readable .tar.gz."; }
     rm -f "$DIR/src.tar.gz"
   fi
   [ -f "$_new/deploy/install/compose.yml" ] || { rm -rf "$_new"; die "That source doesn't look like $APP_NAME."; }
@@ -375,6 +379,8 @@ write_env() {
   env_set AB_HTTPS_PORT "$HTTPS_PORT"
   env_set AB_HTTP_PORT "$HTTP_PORT"
   env_set AB_SMB_ENABLED false
+  env_set AB_SMB_HOST "$HOST"
+  [ -z "$CA_FILE" ] || env_set AB_BUILD_CA "$CA_FILE"
   if [ "$TLS" = self-signed ]; then
     env_set AB_INSTALL_URL "$PLAIN_URL"
     env_set AB_INSTALL_CA_FILE /certs/server.crt
@@ -507,12 +513,12 @@ cmd_install() {
   need_root
   say "${B}$APP_NAME installer${R}  ${D}($DIR)${R}"
   ensure_tools
-  ensure_docker
   if [ -d "$DIR" ] && [ ! -f "$DIR/.$APP_SLUG-install" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
     die "$DIR already has files and isn't a $APP_NAME install. Choose an empty or new folder with --dir."
   fi
   choose_address
   choose_storage
+  ensure_docker
   mkdir -p "$DIR"; chmod 755 "$DIR"
   printf 'This folder is a %s install. Remove it with: sudo %s uninstall\n' "$APP_NAME" "$APP_SLUG" >"$DIR/.$APP_SLUG-install"
   fetch_source
@@ -533,6 +539,7 @@ cmd_upgrade() {
   fetch_source
   _cur=$(env_get AB_IMAGE)
   case $_cur in *:local) BUILD=1 ;; esac
+  [ -n "$CA_FILE" ] || { CA_FILE=$(env_get AB_BUILD_CA); [ -f "$CA_FILE" ] || CA_FILE=""; }
   choose_image
   compose pull -q caddy db >/dev/null 2>&1 || true
   start_app
@@ -632,7 +639,7 @@ main() {
     esac
   done
   DIR=$(printf '%s' "$DIR" | tr -s /); DIR=${DIR%/}
-  case $DIR in /?*) ;; *) die "--dir must be an absolute folder, not '$DIR'." ;; esac
+  case $DIR in /?*) ;; '') die "--dir can't be /." ;; *) die "--dir must be an absolute folder, not '$DIR'." ;; esac
   case $DIR in
     /bin|/boot|/dev|/etc|/home|/lib|/lib64|/media|/mnt|/opt|/proc|/root|/run|/sbin|/srv|/sys|/tmp|/usr|/usr/*|/var|/var/lib)
       die "--dir $DIR is a system folder; use a folder of its own, such as /opt/$APP_SLUG." ;;
@@ -643,7 +650,7 @@ main() {
     uninstall) cmd_uninstall ;;
     status) cmd_status ;;
     restart) need_root; compose restart; say "Restarted." ;;
-    password) need_root; say "admin / $(env_get AB_BOOTSTRAP_PASSWORD)  ${D}(the first password; if it was changed in the app, this one no longer works)${R}" ;;
+    password) need_root; [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR."; say "admin / $(env_get AB_BOOTSTRAP_PASSWORD)  ${D}(the first password; if it was changed in the app, this one no longer works)${R}" ;;
     help|-h|--help) usage ;;
   esac
 }
