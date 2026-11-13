@@ -7,6 +7,7 @@
   import Logo from './lib/Logo.svelte';
   import Avatar from './lib/Avatar.svelte';
   import Toasts from './lib/Toasts.svelte';
+  import ChangePassword from './lib/ChangePassword.svelte';
   import Login from './pages/Login.svelte';
   import Consent from './pages/Consent.svelte';
   import Files from './pages/Files.svelte';
@@ -93,6 +94,7 @@
   ].filter((n) => n.show !== false));
 
   let menu = $state(false);
+  let pwOpen = $state(false);
   let drawer = $state(false);
   $effect(() => { route.path; drawer = false; menu = false; });
   const used = $derived(pool ? pool.used_bytes : 0);
@@ -100,6 +102,7 @@
 </script>
 
 <Toasts />
+{#if pwOpen && session.user}<ChangePassword onclose={() => (pwOpen = false)} />{/if}
 
 {#if !session.loaded}
   <div class="boot"><Logo size={28} /></div>
@@ -153,6 +156,7 @@
             <div class="menu card">
               <div class="note" style="padding:8px 10px">Signed in as <span class="mono">{session.user.username}</span></div>
               <a class="mi" href="/welcome"><Icon name="sparkle" />Getting started</a>
+              <button class="mi" onclick={() => { menu = false; pwOpen = true; }}><Icon name="key" />Change password</button>
               <button class="mi" onclick={signOut}><Icon name="signout" />Sign out</button>
             </div>
           {/if}
@@ -203,6 +207,7 @@
   .menu { position: absolute; bottom: 52px; left: 0; right: 0; padding: 6px; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); z-index: 5; }
   .mi { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; align-items: center; width: 100%; padding: 9px 10px; border-radius: 7px; font-size: 13px; }
   .mi:hover { background: var(--raise); }
+  a.mi { color: var(--text); }
   .main { flex: 1; min-width: 0; }
   @media (max-width: 900px) {
     .shell { flex-direction: column; }
