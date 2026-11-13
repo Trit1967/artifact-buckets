@@ -324,14 +324,16 @@ write_caddyfile() {
   } >"$DIR/Caddyfile"
 }
 
+new_secret() { # new_secret NAME BYTES: a random hex value (BYTES 0: a 20-character login password), unless set
+  [ -z "$(env_get "$1")" ] || return 0
+  if [ "$2" = 0 ]; then env_set "$1" "$(rand_pass)"; else env_set "$1" "$(rand_hex "$2")"; fi
+}
+
 write_env() {
   # Secrets are generated here on first install and kept on later runs.
-  for _k in AB_SECRET_KEY:hex32 POSTGRES_PASSWORD:hex24 AB_BOOTSTRAP_PASSWORD:pass; do
-    _name=${_k%%:*}
-    [ -z "$(env_get "$_name")" ] || continue
-    case ${_k#*:} in hex32) _v=$(rand_hex 32) ;; hex24) _v=$(rand_hex 24) ;; *) _v=$(rand_pass) ;; esac
-    env_set "$_name" "$_v"
-  done
+  new_secret AB_SECRET_KEY 32
+  new_secret POSTGRES_PASSWORD 24
+  new_secret AB_BOOTSTRAP_PASSWORD 0
   [ -n "$(env_get AB_BOOTSTRAP_ADMIN)" ] || env_set AB_BOOTSTRAP_ADMIN admin
   env_set AB_BOOTSTRAP_EMAIL "$EMAIL"
   env_set AB_HOSTNAME "$HOST"
