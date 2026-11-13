@@ -388,7 +388,7 @@ write_caddyfile() {
         printf '%s {\n\ttls /certs/public/server.crt /certs/server.key\n\timport app\n}\n\n' "$_sites"
         # Plain http only hands out the Claude Code setup files and the certificate (a computer needs them
         # before it trusts the certificate); everything else goes to https.
-        printf 'http:// {\n\t@setup path /claude/install.ps1 /claude/install.sh /claude/setup.md /claude/ca.crt\n'
+        printf 'http:// {\n\t@setup path /claude/install.ps1 /claude/install.sh /claude/uninstall.ps1 /claude/uninstall.sh /claude/sync.ps1 /claude/setup.md /claude/ca.crt\n'
         printf '\thandle @setup {\n\t\treverse_proxy app:8080\n\t}\n\thandle {\n\t\tredir %s{uri} 308\n\t}\n\theader -Server\n}\n' "$BASE_URL" ;;
     esac
   } >"$DIR/Caddyfile"
@@ -539,7 +539,7 @@ summary() {
   if [ "$TLS" = self-signed ]; then
     say ""
     say "  ${D}The certificate is self-signed, so browsers warn the first time. The Claude Code setup above"
-    say "  offers to trust it on that computer (for this server only).${R}"
+    say "  checks it and points Claude Code at it (for this server only).${R}"
   fi
   [ -n "$HTTPS_OK" ] || { say ""; warn "HTTPS didn't answer yet on $BASE_URL. With Let's Encrypt the first certificate can take a minute; 'sudo $APP_SLUG logs caddy' shows why."; }
   if [ "$PUB_HTTPS" != "$HTTPS_PORT" ] || [ "$PUB_HTTP" != "$HTTP_PORT" ]; then

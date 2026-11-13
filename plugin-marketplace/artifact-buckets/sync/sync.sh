@@ -8,13 +8,15 @@
 #   - files a project's files under projects/<folder or repo name>/ and loose files under inbox/,
 #   - sends only what changed since last time.
 #
-#   sync.sh link [server]   link this computer (opens the browser to approve, once)
+#   sync.sh link [server]   connect this computer: looks for Claude's files, then opens the browser where the
+#                           person picks which folders to copy and presses Connect (once)
 #   sync.sh scan            show what would be copied, change nothing
 #   sync.sh run             copy now
 #   sync.sh exclude [dir]   never copy anything under this folder (no folder: list them)
 #   sync.sh off | on        pause or resume automatic syncing (after each Claude Code reply)
 #   sync.sh status          show the link and the last run
-#   sync.sh unlink          forget the link on this computer
+#   sync.sh unlink          disconnect: ends this computer's link (and the sign-in approved with it) on the
+#                           server, and forgets it here
 #   sync.sh hook            what the Claude Code plugin runs: starts a quiet "run" in the background when
 #                           linked and on, and returns at once (so closing Claude Code doesn't cut it short)
 set -u
@@ -43,18 +45,37 @@ curl_() {
   if [ -n "$CA" ] && [ -f "$CA" ]; then curl --cacert "$CA" "$@"; else curl "$@"; fi
 }
 
+# The folders a first copy would fill, as JSON for the Connect page: [{"folder","files","bytes","source"}].
+folders_json() {
+  plan=$STATE/plan.tsv
+  [ -s "$plan" ] || { printf '[]'; return; }
+  grep '^send' "$plan" | while IFS="$(printf '\t')" read -r _ where project rel _ f; do
+    if [ "$where" = projects ]; then folder="projects/$project"; src=${f%/"$rel"}; else folder=inbox; src=""; fi
+    printf '%s\t%s\t%s\n' "$folder" "$(wc -c < "$f" | tr -d ' ')" "$src"
+  done | awk -F'\t' '
+    function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/[\001-\037]/, "", s); return s }
+    { n[$1]++; b[$1] += $2; if (!($1 in s)) s[$1] = $3; if (!($1 in o)) { o[$1] = ++k; key[k] = $1 } }
+    END { printf "["; for (i = 1; i <= k && i <= 200; i++) { f = key[i]
+            printf "%s{\"folder\":\"%s\",\"files\":%d,\"bytes\":%d,\"source\":\"%s\"}", (i > 1 ? "," : ""), esc(f), n[f], b[f], esc(s[f]) }
+          printf "]" }'
+}
+
 link() {
   srv=${1:-$SERVER}
   [ -n "$srv" ] || die "Give the server address: sync.sh link https://buckets.example.com"
   srv=${srv%/}
   [ -f "$DIR/server.crt" ] && CA=$DIR/server.crt
   name=$(hostname 2>/dev/null | cut -d. -f1); [ -n "$name" ] || name="This computer"
-  start=$(curl_ -fsS -X POST -H 'content-type: application/json' --data "{\"computer\":\"$name\"}" "$srv/api/sync/link/start") \
+  say "Looking for files Claude has already made here (the first time can take a minute)…"
+  rm -f "$DIR/skip-folders" "$STATE"/sent.tsv "$STATE"/last-run "$STATE"/next-run   # a new link starts afresh
+  q=$QUIET; QUIET=1; sync_ dry; QUIET=$q
+  body=$(printf '{"computer":"%s","folders":%s}' "$(printf '%s' "$name" | tr -d '"\\')" "$(folders_json)")
+  start=$(printf '%s' "$body" | curl_ -fsS -X POST -H 'content-type: application/json' --data-binary @- "$srv/api/sync/link/start") \
     || die "Couldn't reach $srv"
   code=$(printf '%s' "$start" | sed -n 's/.*"code":"\([^"]*\)".*/\1/p')
   poll=$(printf '%s' "$start" | sed -n 's/.*"poll":"\([^"]*\)".*/\1/p')
   url=$(printf '%s' "$start" | sed -n 's/.*"link":"\([^"]*\)".*/\1/p')
-  printf '\n  To let this computer sync, open %s\n  and check the code matches: %s\n\n' "$url" "$code"
+  printf '\n  Finish in your browser: %s\n  (If it asks, the code is %s.)\n\n' "$url" "$code"
   (command -v open >/dev/null 2>&1 && open "$url") || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$url") >/dev/null 2>&1 || true
   i=0
   while [ $i -lt 300 ]; do
@@ -66,13 +87,19 @@ link() {
         tok=$(printf '%s' "$r" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
         max=$(printf '%s' "$r" | sed -n 's/.*"max_file_bytes":\([0-9]*\).*/\1/p')
         home=$(printf '%s' "$r" | sed -n 's/.*"home":"\([^"]*\)".*/\1/p')
-        rm -f "$STATE"/sent.tsv "$STATE"/last-run "$STATE"/next-run   # a new link starts afresh
+        printf '%s' "$r" | sed -n 's/.*"skip":\[\([^]]*\)\].*/\1/p' | tr ',' '\n' | sed -n 's/^ *"\(.*\)" *$/\1/p' \
+          | sed 's/\\\\/\\/g; s/\\"/"/g' > "$DIR/skip-folders"
         { echo "server=$srv"; echo "token=$tok"; echo "computer=$name"; echo "home=$home"; echo "max=${max:-524288000}"
           echo "enabled=on"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
-        printf '  Linked. Files Claude makes on this computer go to %s\n\n' "$home"
+        printf '  Connected. Files Claude makes on this computer go to %s\n\n' "$home"
         return 0 ;;
-      denied) die "The link was declined in the browser." ;;
-      expired) die "The code expired. Run this again." ;;
+      connected)
+        home=$(printf '%s' "$r" | sed -n 's/.*"home":"\([^"]*\)".*/\1/p')
+        { echo "server=$srv"; echo "computer=$name"; echo "home=$home"; echo "enabled=off"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
+        printf '  Connected, without syncing. Nothing will be copied from this computer.\n\n'
+        return 0 ;;
+      denied) die "Not connected: it was declined in the browser." ;;
+      expired) die "The link expired. Run this again." ;;
     esac
   done
   die "Timed out waiting for the browser."
@@ -170,6 +197,10 @@ sync_() {   # $1 = dry | send
     case "$p" in skip*) printf '%s\t%s\n' "$p" "$f" >> "$plan"; continue ;; esac
     where=$(printf '%s' "$p" | cut -f1); project=$(printf '%s' "$p" | cut -f2); rel=$(printf '%s' "$p" | cut -f3-)
     dest="$where/$project/$rel"
+    if [ -s "$DIR/skip-folders" ]; then
+      fo=$( [ "$where" = projects ] && echo "projects/$project" || echo inbox )
+      if grep -qxF "$fo" "$DIR/skip-folders"; then printf 'skip\tnot chosen\t%s\n' "$f" >> "$plan"; continue; fi
+    fi
     s=$(sha "$f" 2>/dev/null)
     [ -n "$s" ] || { printf 'skip\tunreadable\t%s\n' "$f" >> "$plan"; continue; }
     if grep -qxF "$(printf '%s\t%s' "$dest" "$s")" "$sent"; then printf 'skip\tunchanged\t%s\n' "$f" >> "$plan"; continue; fi
@@ -243,11 +274,23 @@ case "$CMD" in
   off|on) [ -f "$CONF" ] || die "Not linked."; sed -i.bak '/^enabled=/d' "$CONF" && rm -f "$CONF.bak"; echo "enabled=$CMD" >> "$CONF"
           say "Automatic sync is $CMD." ;;
   status)
-    if [ -z "$TOKEN" ]; then say "Not linked."; else
+    if [ -z "$TOKEN" ] && [ -n "$SERVER" ]; then say "Connected to $SERVER without syncing."
+    elif [ -z "$TOKEN" ]; then say "Not linked."; else
       say "Linked to $SERVER as $(conf home) ($(conf computer)). Automatic sync: $(conf enabled)."
       [ -f "$STATE/last-run" ] && say "Last complete run: $(date -r "$STATE/last-run" 2>/dev/null || ls -l "$STATE/last-run")"
       say "Files copied so far: $(wc -l < "$STATE/sent.tsv" 2>/dev/null | tr -d ' ' || echo 0)"
     fi ;;
-  unlink) rm -f "$CONF"; rm -rf "$STATE"; say "Forgot the link. (Turn the computer off on the Connect page to end it on the server.)" ;;
+  unlink)
+    if [ -n "$TOKEN" ] && [ -n "$SERVER" ]; then
+      printf 'authorization: Bearer %s\n' "$TOKEN" > "$STATE/auth"
+      if resp=$(curl_ -fsS -X POST -H @"$STATE/auth" "$SERVER/api/sync/unlink" 2>/dev/null); then ended=1; else ended=; fi
+      rm -f "$STATE/auth"
+    fi
+    rm -f "$CONF" "$DIR/skip-folders"; rm -rf "$STATE"
+    if [ -n "${ended:-}" ]; then
+      case "$resp" in *'"signed_out":true'*) say "Disconnected: this computer's sync and its Claude Code sign-in are turned off on the server." ;;
+        *) say "Disconnected: this computer's sync is turned off on the server." ;; esac
+    elif [ -n "$SERVER" ] && [ -z "$TOKEN" ]; then say "Forgot the connection here. Its sign-in is listed under Connect Claude Code on the server if you want to turn it off there too."
+    else say "Forgot the link here. (If the server couldn't be reached, turn this computer off on the Connect page.)"; fi ;;
   *) die "Unknown command: $CMD (link, scan, run, exclude, off, on, status, unlink)" ;;
 esac

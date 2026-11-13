@@ -141,8 +141,40 @@ def authorize(request: Request) -> Response:
         if sess is None:
             nxt = "/oauth/authorize?" + urlencode(q)
             return RedirectResponse("/login?" + urlencode({"next": nxt}), status_code=302)
+        # The person just allowed this computer on the Connect page in this same browser: that approval
+        # covers Claude Code's sign-in too, so they don't press Connect twice. Only for a loopback redirect
+        # (Claude Code on that computer), and only once.
+        from . import sync
+        pre = sync.preapproved(db, sess.user_id, request.cookies.get(SESSION_COOKIE))
+        if pre is not None and _loopback(q["redirect_uri"]):
+            plan, link = pre
+            user = db.get(User, sess.user_id)
+            if user is not None and user.status == "active":
+                plan.oauth_used = True
+                plan.client_id = client.client_id
+                client.name = f"Claude Code on {link.computer}"[:128]
+                actor = Actor(user=user, via="web", ip=request.client.host if request.client else None)
+                return _issue_code(db, actor, client, q["redirect_uri"], q.get("state", ""), q["code_challenge"])
         # The web app's consent page reads these and posts back to /oauth/approve.
         return RedirectResponse("/consent?" + urlencode({**q, "client_name": client.name}), status_code=302)
+
+
+def _loopback(uri: str) -> bool:
+    p = urlparse(uri)
+    return p.scheme == "http" and p.hostname in ("localhost", "127.0.0.1", "::1")
+
+
+def _issue_code(db: Session, actor: Actor, client: OAuthClient, redirect_uri: str, state: str,
+                code_challenge: str) -> RedirectResponse:
+    code = secrets.token_urlsafe(32)
+    db.add(OAuthCode(code_hash=sha256_hex(code), client_id=client.client_id, user_id=actor.user.id,
+                     redirect_uri=redirect_uri, code_challenge=code_challenge,
+                     expires_at=utcnow() + dt.timedelta(minutes=5)))
+    audit.log(db, actor, "oauth.approve", client.name)
+    db.commit()
+    params = {"code": code, **({"state": state} if state else {})}
+    sep = "&" if "?" in redirect_uri else "?"
+    return RedirectResponse(redirect_uri + sep + urlencode(params), status_code=302)
 
 
 @router.post("/oauth/approve")
@@ -168,16 +200,9 @@ def approve(request: Request, client_id: str = Form(...), redirect_uri: str = Fo
             audit.log(db, actor, "oauth.deny", client.name)
             db.commit()
             return _err_redirect(redirect_uri, state, "access_denied")
-        code = secrets.token_urlsafe(32)
-        db.add(OAuthCode(code_hash=sha256_hex(code), client_id=client.client_id, user_id=user.id, redirect_uri=redirect_uri,
-                         code_challenge=code_challenge, expires_at=utcnow() + dt.timedelta(minutes=5)))
         if device_name:
             client.name = device_name[:128]
-        audit.log(db, actor, "oauth.approve", client.name)
-        db.commit()
-    params = {"code": code, **({"state": state} if state else {})}
-    sep = "&" if "?" in redirect_uri else "?"
-    return RedirectResponse(redirect_uri + sep + urlencode(params), status_code=302)
+        return _issue_code(db, actor, client, redirect_uri, state, code_challenge)
 
 
 def _tokens(db: Session, user: User, client: OAuthClient, grant_id: str) -> dict[str, Any]:

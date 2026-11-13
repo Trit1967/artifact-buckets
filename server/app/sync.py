@@ -22,7 +22,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
-from sqlalchemy import DateTime, Integer, String, func, select, update
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String, func, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import audit, config, fs, paths
@@ -30,7 +30,7 @@ from .api import current, get_db
 from .db import Base, File, Token, User, utcnow
 from .errors import BadRequest, Forbidden, NotFound, Unauthorized
 from .perms import Actor
-from .security import issue_token, resolve_token, sha256_hex
+from .security import SESSION_COOKIE, issue_token, resolve_token, sha256_hex
 
 router = APIRouter(prefix="/api/sync")
 
@@ -51,6 +51,23 @@ class SyncLink(Base):
     user_id: Mapped[int | None] = mapped_column(Integer)
     ip: Mapped[str | None] = mapped_column(String(64))  # where the computer asked from
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class LinkPlan(Base):
+    """What a link request covers. The computer sends the folders it would copy (names and counts only, no
+    file contents); the person picks which to keep and whether to sync at all. Approving also signs in
+    Claude Code on that computer: the next sign-in from the same browser within ten minutes needs no
+    second click. Its own table, so existing databases pick it up without a migration."""
+    __tablename__ = "sync_link_plans"
+    link_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    folders: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    keep: Mapped[list[str] | None] = mapped_column(JSON)
+    sync: Mapped[bool] = mapped_column(Boolean, default=True)
+    session_hash: Mapped[str | None] = mapped_column(String(64), index=True)  # the browser session that approved
+    approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime)
+    oauth_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    client_id: Mapped[str | None] = mapped_column(String(64))  # the Claude Code sign-in it approved
+    token_id: Mapped[int | None] = mapped_column(Integer, index=True)  # the sync token it issued
 
 
 class Welcomed(Base):
@@ -87,21 +104,53 @@ def _link_row(db: Session, code: str) -> SyncLink:
 
 # ---- the computer's side ------------------------------------------------------------
 
+class FolderInfo(BaseModel):
+    folder: str
+    files: int = 0
+    bytes: int = 0
+    source: str = ""   # the folder on the computer it comes from, to help the person recognise it
+
+
 class StartBody(BaseModel):
     computer: str = ""
+    folders: list[FolderInfo] = []
+
+
+_FOLDER = re.compile(r"inbox|projects/[^/\\\x00-\x1f]{1,128}")
+
+
+def _clean_folders(items: list[FolderInfo]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for it in items[:200]:
+        f = it.folder.strip()
+        if not _FOLDER.fullmatch(f) or f in seen or f in ("projects/.", "projects/.."):
+            continue
+        seen.add(f)
+        src = "".join(ch for ch in unicodedata.normalize("NFKC", it.source or "")
+                      if unicodedata.category(ch) not in ("Cc", "Cf", "Zl", "Zp", "Co", "Cs", "Cn"))[:300]
+        out.append({"folder": f, "files": max(0, min(int(it.files), 10_000_000)),
+                    "bytes": max(0, min(int(it.bytes), 1 << 50)), "source": src})
+    return out
 
 
 @router.post("/link/start")
 def link_start(body: StartBody, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     # Old requests are only useful for ten minutes.
     for old in db.scalars(select(SyncLink).where(SyncLink.created_at < utcnow() - dt.timedelta(hours=1))):
+        p = db.get(LinkPlan, old.id)
+        if p is not None and p.token_id is None:   # keep the ones that issued a token: unlink needs them
+            db.delete(p)
         db.delete(old)
     poll = secrets.token_urlsafe(32)
     code = _code()
     while db.scalar(select(SyncLink).where(SyncLink.user_code == code)) is not None:
         code = _code()
-    db.add(SyncLink(user_code=code, poll_hash=sha256_hex(poll), computer=_clean_computer(body.computer),
-                    ip=request.client.host if request.client else None))
+    row = SyncLink(user_code=code, poll_hash=sha256_hex(poll), computer=_clean_computer(body.computer),
+                   ip=request.client.host if request.client else None)
+    db.add(row)
+    db.flush()
+    db.add(LinkPlan(link_id=row.id, folders=_clean_folders(body.folders)))
     db.commit()
     base = config.settings.base_url
     return {"code": code, "poll": poll, "link": f"{base}/link?code={code}", "interval": 2, "expires_in": LINK_MINUTES * 60}
@@ -126,7 +175,12 @@ def link_poll(body: PollBody, db: Session = Depends(get_db)) -> dict[str, Any]:
     if won.rowcount != 1:
         db.rollback()
         return {"status": "done"}
+    plan = db.get(LinkPlan, row.id)
     home = f"/users/{u.username}"
+    if plan is not None and not plan.sync:
+        audit.log(db, None, "sync.connect", row.computer, via="api", user=u.username)
+        db.commit()
+        return {"status": "connected", "user": u.username, "home": home, "server": config.settings.base_url}
     name = f"Sync on {row.computer}"
     # Linking the same computer again replaces its earlier link.
     for old in db.scalars(select(Token).where(Token.user_id == u.id, Token.kind == "sync", Token.name == name,
@@ -134,10 +188,35 @@ def link_poll(body: PollBody, db: Session = Depends(get_db)) -> dict[str, Any]:
         old.revoked = True
     raw, tok = issue_token(db, u, name=name, kind="sync", scope="write",
                            folders=[f"{home}/projects", f"{home}/inbox"], ttl=dt.timedelta(days=TOKEN_DAYS))
+    skip: list[str] = []
+    if plan is not None:
+        plan.token_id = tok.id
+        if plan.keep is not None:
+            skip = [f["folder"] for f in plan.folders if f["folder"] not in plan.keep]
     audit.log(db, None, "sync.link", row.computer, via="api", user=u.username)
     db.commit()
     return {"status": "approved", "token": raw, "user": u.username, "home": home, "server": config.settings.base_url,
-            "max_file_bytes": config.settings.max_file_bytes}
+            "max_file_bytes": config.settings.max_file_bytes, "skip": skip}
+
+
+@router.post("/unlink")
+def unlink(request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Called by the computer when Artifact Buckets is removed from it: ends its sync link and the Claude Code
+    sign-in that was approved with it. Files already copied stay."""
+    actor = _sync_actor(request, db)
+    tok = actor.token
+    ended = 0
+    plan = db.scalar(select(LinkPlan).where(LinkPlan.token_id == tok.id)) if tok else None
+    if plan is not None and plan.client_id:
+        for t in db.scalars(select(Token).where(Token.user_id == actor.user.id, Token.client_id == plan.client_id,
+                                                Token.revoked.is_(False))):
+            t.revoked = True
+            ended += 1
+    if tok is not None:
+        tok.revoked = True
+    audit.log(db, actor, "sync.unlink", tok.name.removeprefix("Sync on ") if tok else "")
+    db.commit()
+    return {"ok": True, "signed_out": ended > 0}
 
 
 def _sync_actor(request: Request, db: Session) -> Actor:
@@ -242,26 +321,61 @@ def link_info(code: str, request: Request, db: Session = Depends(get_db)) -> dic
         raise Forbidden("Approve this in the web app")
     row = _link_row(db, code)
     here = request.client.host if request.client else None
+    plan = db.get(LinkPlan, row.id)
     return {"code": row.user_code, "computer": row.computer, "status": row.status,
             "same_network": bool(row.ip and here and row.ip == here), "from_ip": row.ip,
-            "age_seconds": int((utcnow() - row.created_at).total_seconds())}
+            "age_seconds": int((utcnow() - row.created_at).total_seconds()),
+            "folders": plan.folders if plan else [], "home": f"/users/{actor.user.username}"}
+
+
+class DecideBody(BaseModel):
+    keep: list[str] | None = None   # folders to copy; None = all of them
 
 
 @router.post("/link/{code}/{decision}")
-def link_decide(code: str, decision: str, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
+def link_decide(code: str, decision: str, request: Request, body: DecideBody | None = None,
+                db: Session = Depends(get_db)) -> dict[str, Any]:
+    """allow: connect Claude Code and sync (the folders in keep); connect: connect Claude Code only; deny."""
     actor = _web_actor(request, db)
     if actor.via != "web":
         raise Forbidden("Approve this in the web app")
     row = _link_row(db, code)
     if row.status != "pending":
         raise BadRequest("This code was already used")
-    if decision not in ("allow", "deny"):
+    if decision not in ("allow", "connect", "deny"):
         raise NotFound("Not found")
-    row.status = "approved" if decision == "allow" else "denied"
+    row.status = "denied" if decision == "deny" else "approved"
     row.user_id = actor.user.id
-    audit.log(db, actor, "sync.approve" if decision == "allow" else "sync.deny", row.computer)
+    plan = db.get(LinkPlan, row.id)
+    if plan is None:
+        plan = LinkPlan(link_id=row.id, folders=[])
+        db.add(plan)
+    if decision != "deny":
+        plan.sync = decision == "allow"
+        if body is not None and body.keep is not None:
+            known = {f["folder"] for f in plan.folders}
+            plan.keep = [k for k in body.keep if k in known]
+        plan.session_hash = sha256_hex(request.cookies.get(SESSION_COOKIE) or "")
+        plan.approved_at = utcnow()
+    audit.log(db, actor, {"allow": "sync.approve", "connect": "sync.connect_only", "deny": "sync.deny"}[decision],
+              row.computer)
     db.commit()
-    return {"status": row.status, "computer": row.computer}
+    return {"status": row.status, "computer": row.computer, "sync": decision == "allow"}
+
+
+def preapproved(db: Session, user_id: int, session_cookie: str | None) -> tuple[LinkPlan, SyncLink] | None:
+    """A computer this browser session approved in the last ten minutes whose Claude Code sign-in hasn't
+    happened yet. The OAuth authorize step uses it to skip the second click."""
+    if not session_cookie:
+        return None
+    since = utcnow() - dt.timedelta(minutes=LINK_MINUTES)
+    for plan in db.scalars(select(LinkPlan).where(LinkPlan.session_hash == sha256_hex(session_cookie),
+                                                  LinkPlan.oauth_used.is_(False), LinkPlan.approved_at >= since)
+                           .order_by(LinkPlan.approved_at.desc())):
+        row = db.get(SyncLink, plan.link_id)
+        if row is not None and row.user_id == user_id and row.status in ("approved", "done"):
+            return plan, row
+    return None
 
 
 @router.post("/welcome/done")

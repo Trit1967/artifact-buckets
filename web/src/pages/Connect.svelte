@@ -51,25 +51,26 @@
   <section class="steps">
     <div class="card step">
       <span class="num mono">1</span>
-      <h2>Run one line</h2>
+      <h2>Ask Claude Code</h2>
+      <Copy text={setup.prompt} label="the prompt" />
+      <p class="note">Paste it into Claude Code on your computer. Claude checks each step, says what it’s doing and does it for you.</p>
+      <div class="or"><span>or run one line</span></div>
       <div class="segs os" role="group" aria-label="Your computer">
         <button class="seg" class:on={os === 'windows'} onclick={() => (os = 'windows')}>Windows</button>
         <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
       </div>
       <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
-      <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}. It adds the Artifact Buckets plugin to Claude Code, already pointed at this server. Running it again is safe.{#if setup.private_ca}{' '}This server uses its own certificate, so the first time, {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if}</p>
-      <div class="or"><span>or ask Claude Code</span></div>
-      <Copy text={setup.prompt} label="the prompt" />
-      <p class="note">Paste it into Claude Code. Claude reads the steps, checks them, explains each one and does them for you.</p>
+      <p class="note">In {os === 'windows' ? 'PowerShell' : 'a terminal'}. It asks nothing there, and running it again is safe.</p>
     </div>
     <div class="card step">
       <span class="num mono">2</span>
-      <h2>Sign in once</h2>
-      <p class="note">Your browser opens this site. Sign in and press <b>Connect</b>. There are no keys to copy, and nothing to type into Claude Code.</p>
+      <h2>Press Connect once</h2>
+      <p class="note">A page opens here in your browser. Untick any folders of Claude’s existing work that should stay on your computer, then press <b>Connect</b>. That one press signs Claude Code in too.{#if setup.private_ca}{' '}This server uses its own certificate, so your browser may warn the first time.{/if}</p>
       <div class="mock">
-        <div class="mono" style="font-size:12px">Plugin installed</div>
-        <div class="mono note">Opening your browser to sign in…</div>
-        <div class="mono" style="font-size:12px;color:var(--green)">Done. Claude Code can now save to Artifact Buckets.</div>
+        <div class="mrow"><span class="mbox on"><Icon name="check" size={10} /></span><span class="mono">quarterly-report</span><span class="faint mono">14 files</span></div>
+        <div class="mrow"><span class="mbox on"><Icon name="check" size={10} /></span><span class="mono">onboarding-guide</span><span class="faint mono">6 files</span></div>
+        <div class="mrow off"><span class="mbox"></span><span class="mono">client-work</span><span class="faint mono">22 files</span></div>
+        <div class="mbtn">Connect and copy 20 files</div>
       </div>
     </div>
     <div class="card step">
@@ -83,6 +84,19 @@
       </ul>
     </div>
   </section>
+
+  <details class="card alt" id="remove">
+    <summary>Removing it from a computer</summary>
+    <div class="rm">
+      <p class="note">Takes the plugin, the sync and the certificate setting off that computer, and turns its connection off here. Files already saved stay in your folders.</p>
+      <div class="segs os" role="group" aria-label="Your computer">
+        <button class="seg" class:on={os === 'windows'} onclick={() => (os = 'windows')}>Windows</button>
+        <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
+      </div>
+      <Copy text={os === 'windows' ? setup.uninstall_windows : setup.uninstall_unix} label="the remove command" />
+      <p class="note">Or ask Claude Code: <span class="mono">{setup.remove_prompt}</span></p>
+    </div>
+  </details>
 
   {#if session.isAdmin}
     <section class="card rollout" id="rollout">
@@ -233,6 +247,14 @@
   .dvi { width: 34px; height: 34px; border-radius: 9px; background: var(--raise); color: var(--text-2); display: grid; place-items: center; }
   .warn { color: var(--amber); }
   .os { align-self: flex-start; }
+  .rm { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  .rm p { margin: 0; }
+  .rm .mono { overflow-wrap: anywhere; font-size: 12px; }
+  .mrow { display: grid; grid-template-columns: 14px 1fr auto; gap: 9px; align-items: center; font-size: 12px; }
+  .mrow.off .mono:not(.faint) { color: var(--faint); text-decoration: line-through; }
+  .mbox { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--line-hover); display: grid; place-items: center; }
+  .mbox.on { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+  .mbtn { margin-top: 4px; align-self: flex-end; font-size: 11.5px; font-weight: 500; padding: 5px 10px; border-radius: 7px; background: var(--amber); color: var(--amber-ink); }
   .or { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12px; margin-top: 4px; }
   .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
   .rollout .ro-body { padding: 18px 22px 20px; display: flex; flex-direction: column; gap: 16px; }
