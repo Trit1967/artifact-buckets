@@ -113,7 +113,7 @@ class FolderInfo(BaseModel):
 
 
 class StartBody(BaseModel):
-    computer: str = Field("", max_length=256)
+    computer: str = Field("", max_length=4096)   # trimmed to 64 below
     folders: list[FolderInfo] = Field([], max_length=2000)
 
 

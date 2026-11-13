@@ -91,7 +91,7 @@ def test_start_payload_is_bounded(app):
     c = TestClient(app)
     many = [{"folder": f"projects/p{i}", "files": 1} for i in range(2001)]
     assert c.post("/api/sync/link/start", json={"computer": "X", "folders": many}).status_code == 422
-    assert c.post("/api/sync/link/start", json={"computer": "X" * 300}).status_code == 422
+    assert c.post("/api/sync/link/start", json={"computer": "X" * 5000}).status_code == 422
 
 
 def test_link_start_survives_old_links_being_cleaned_up(app, admin):
