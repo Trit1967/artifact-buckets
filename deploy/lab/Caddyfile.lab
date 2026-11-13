@@ -1,19 +1,14 @@
-# Lab: https with Caddy's own certificate authority (Claude Code only signs in over https), for a bare
-# IP address. Plain http is kept only to hand out the Claude Code installer and the lab certificate.
+# Lab: https (Claude Code only signs in over https) on a bare IP address, with a self-signed server
+# certificate made by vm-setup.sh. It is not a CA and names only the lab address, so a computer that trusts
+# it trusts this server and nothing else. Plain http is kept only to hand out the Claude Code setup files.
 {
 	admin off
 	auto_https disable_redirects
-	skip_install_trust
 	default_sni {$LAB_IP}
-	pki {
-		ca local {
-			name "Artifact Buckets Lab"
-		}
-	}
 }
 
 https://{$LAB_IP} {
-	tls internal
+	tls /certs/lab.crt /certs/lab.key
 	encode zstd gzip
 	request_body {
 		max_size 700MB
@@ -23,7 +18,7 @@ https://{$LAB_IP} {
 }
 
 http:// {
-	@installer path /claude/install.ps1 /claude/install.sh /claude/ca.crt
+	@installer path /claude/install.ps1 /claude/install.sh /claude/setup.md /claude/ca.crt
 	handle @installer {
 		reverse_proxy app:8080
 	}

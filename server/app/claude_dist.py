@@ -8,7 +8,10 @@ environment variable, clones a repository or types the server address.
   /claude/artifact-buckets-<v>.zip    the plugin, .mcp.json pointing at <base_url>/mcp (sha256-pinned)
   /claude/install.ps1, install.sh     one-line installers
   /claude/managed-settings.json       the policy IT pushes (Intune, Group Policy, Jamf)
-  /claude/ca.crt                      only when AB_INSTALL_CA_FILE is set: a private (lab) root certificate
+  /claude/setup.md                    the same steps written for Claude Code, so a person can just ask
+                                      "Set up Artifact Buckets from <server>/claude/setup.md"
+  /claude/ca.crt                      only when AB_INSTALL_CA_FILE is set: the lab's self-signed server
+                                      certificate (not a CA, valid only for the lab address)
 
 All of it is public and holds nothing secret: the plugin is the same for everyone, and signing in
 still happens in the browser.
@@ -113,6 +116,7 @@ def setup_info() -> dict[str, Any]:
     b = install_base()
     return {
         "windows": f"irm {b}/claude/install.ps1 | iex",
+        "prompt": f"Set up Artifact Buckets on this computer by following {b}/claude/setup.md",
         "unix": f"curl -fsSL {b}/claude/install.sh | sh",
         "marketplace": marketplace_url(),
         "plugin": f"{PLUGIN}@{MARKETPLACE}",
@@ -155,6 +159,76 @@ def ca() -> Response:
 @router.get("/claude/install.ps1")
 def install_ps1() -> PlainTextResponse:
     return PlainTextResponse(_script(PS1), headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/claude/setup.md")
+def setup_md() -> PlainTextResponse:
+    return PlainTextResponse(_setup_md(), media_type="text/markdown; charset=utf-8", headers={"Cache-Control": "no-cache"})
+
+
+def _setup_md() -> str:
+    c = _ca()
+    b = install_base()
+    base = config.settings.base_url
+    host = base.split("://", 1)[1].split("/", 1)[0].rsplit(":", 1)[0]
+    out = [f"""# Connect Claude Code to Artifact Buckets
+
+These steps are written for Claude Code, run on the person's own computer. Artifact Buckets is the team file
+server at {base}. When this is done, Claude Code can save files to it and find, open and share them.
+Explain each step to the person before you run it. Every step is safe to repeat.
+
+If the person would rather do it in one go, the same steps are in a script:
+Windows PowerShell `irm {b}/claude/install.ps1 | iex`, or macOS and Linux `curl -fsSL {b}/claude/install.sh | sh`.
+"""]
+    n = 1
+    if c:
+        out.append(f"""## {n}. Trust this server's certificate
+
+This lab server uses its own certificate. It is a self-signed server certificate, not a certificate authority:
+its Basic Constraints say CA:FALSE and its only name is `{host}`, so trusting it lets it vouch for this one
+server and nothing else. Check that before trusting it:
+
+- Download {b}/claude/ca.crt to `~/.artifact-buckets/server.crt` (on Windows `%USERPROFILE%\\.artifact-buckets\\server.crt`).
+- Its SHA-256 fingerprint (of the DER bytes) must be `{c[1]}`.
+- It must not be a CA, and its subject alternative name must be only `{host}`. On Windows:
+  `$c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 <path>; $c.Extensions | % {{ $_.Format($false) }}`;
+  elsewhere `openssl x509 -in <path> -noout -text`.
+- If any check fails, stop and tell the person. Change nothing.
+
+Then:
+- Claude Code reads extra certificates from `NODE_EXTRA_CA_CERTS` when it starts. Set it for the person's
+  account to the file's full path (Windows: `[Environment]::SetEnvironmentVariable('NODE_EXTRA_CA_CERTS', '<path>', 'User')`;
+  macOS and Linux: an `export NODE_EXTRA_CA_CERTS=...` line in the shell profile). If it's already set to another
+  file, don't overwrite it: tell the person. Also set it in the environment of the commands below.
+- So the browser sign-in page shows no warning, add it to the person's own trust store (Windows:
+  `Import-Certificate -FilePath <path> -CertStoreLocation Cert:\\CurrentUser\\Root`, and Windows asks them to confirm;
+  macOS: `security add-trusted-cert -r trustAsRoot -k ~/Library/Keychains/login.keychain-db <path>`).
+  This is optional: without it the browser warns once at sign-in.
+""")
+        n += 1
+    out.append(f"""## {n}. Install the plugin
+
+```
+claude plugin marketplace add {marketplace_url()}
+claude plugin install {PLUGIN}@{MARKETPLACE}
+```
+
+If the marketplace is already there, run `claude plugin marketplace update {MARKETPLACE}` instead of adding it.
+The plugin has an MCP server entry pointing at {base}/mcp, two skills (`buckets`, `buckets-admin`) and two
+commands (`/buckets-setup`, `/buckets-open`). It has no hooks and runs no programs of its own.
+
+## {n + 1}. Sign in
+
+Run `claude mcp login plugin:{PLUGIN}:{SERVER}`. It opens the browser at this server's sign-in page.
+The person signs in and presses **Connect**; the command finishes by itself. They never copy a key.
+
+## {n + 2}. Check
+
+`claude mcp list` should show `plugin:{PLUGIN}:{SERVER}` as Connected. Tell the person it's done, and that
+a new Claude Code window (or `/reload-plugins` in this one) picks up the plugin. Something to try:
+"save this to my buckets".
+""")
+    return "\n".join(out)
 
 
 @router.get("/claude/install.sh")
@@ -209,13 +283,13 @@ if ($CaUrl) {
   try {
     $dir = Join-Path $HOME '.artifact-buckets'
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    $ca = Join-Path $dir 'ca.crt'
+    $ca = Join-Path $dir 'server.crt'
     Invoke-WebRequest -UseBasicParsing -Uri $CaUrl -OutFile $ca -ErrorAction Stop
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $ca
     $sha = [BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($cert.RawData)).Replace('-', '')
     if ($sha -ne $CaSha) { Stop-Setup "The server's certificate didn't match what was expected. Nothing was changed."; return }
     if (-not (Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Thumbprint -eq $cert.Thumbprint })) {
-      Step "Trusting the server's certificate. Windows will ask you to confirm: choose Yes."
+      Step "Trusting the server's certificate (valid for this server only). Windows will ask you to confirm: choose Yes."
       Import-Certificate -FilePath $ca -CertStoreLocation Cert:\CurrentUser\Root -ErrorAction Stop | Out-Null
     }
     # Claude Code also reads NODE_EXTRA_CA_CERTS; set it for new windows too, unless it's already in use.
@@ -264,13 +338,13 @@ printf '\n  Artifact Buckets\n  Connecting Claude Code to %s\n\n' "$SERVER"
 command -v claude >/dev/null 2>&1 || quit "Claude Code isn't installed yet. Install it first (curl -fsSL https://claude.ai/install.sh | bash), then run this again."
 
 if [ -n "$CA_URL" ]; then
-  dir="$HOME/.artifact-buckets"; mkdir -p "$dir"; ca="$dir/ca.crt"
+  dir="$HOME/.artifact-buckets"; mkdir -p "$dir"; ca="$dir/server.crt"
   curl -fsSL "$CA_URL" -o "$ca"
   sha=$(openssl x509 -in "$ca" -outform der | openssl dgst -sha256 -r | cut -d' ' -f1 | tr a-f A-F)
   [ "$sha" = "$CA_SHA" ] || quit "The server's certificate didn't match what was expected. Nothing was changed."
   if [ "$(uname)" = Darwin ]; then
-    say "Trusting the server's certificate. macOS will ask for your password."
-    security add-trusted-cert -r trustRoot -k "$HOME/Library/Keychains/login.keychain-db" "$ca"
+    say "Trusting the server's certificate (valid for this server only). macOS will ask for your password."
+    security add-trusted-cert -r trustAsRoot -k "$HOME/Library/Keychains/login.keychain-db" "$ca"
   else
     # Linux has no per-user trust store, and Claude Code reads NODE_EXTRA_CA_CERTS only at startup,
     # so it goes in the shell profile (a settings.json env entry comes too late for TLS).

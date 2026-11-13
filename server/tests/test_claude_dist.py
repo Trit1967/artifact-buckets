@@ -83,3 +83,15 @@ def test_plugin_connection_gets_a_plain_name(env, monkeypatch):
     from app.db import OAuthClient, new_session
     with new_session() as db:
         assert db.get(OAuthClient, r.json()["client_id"]).name == "Claude Code"
+
+
+def test_setup_page_for_claude(env, monkeypatch, tmp_path):
+    c = _client(env, monkeypatch, AB_INSTALL_URL="http://boot.example:8090")
+    md = c.get("/claude/setup.md")
+    assert md.status_code == 200 and md.headers["content-type"].startswith("text/markdown")
+    t = md.text
+    assert "claude plugin marketplace add http://testserver/claude/marketplace.json" in t
+    assert "claude mcp login plugin:artifact-buckets:artifact-buckets" in t
+    assert "certificate" not in t.split("## 1.")[1].split("\n")[0].lower()  # no trust step with a public certificate
+    assert c.get("/api/auth/me").json()["claude"]["prompt"] == \
+        "Set up Artifact Buckets on this computer by following http://boot.example:8090/claude/setup.md"

@@ -8,7 +8,7 @@ There were three layers, and two of them were written by an independent tester w
 
 | Layer | Written by | What it covers | Where |
 |---|---|---|---|
-| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (67 tests) |
+| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (68 tests) |
 | Backend QA suite | Independent tester | Every feature line A–I and K in FEATURES.md, through the HTTP API and MCP, including hostile input | `qa/` (210 tests), report `qa/QA_REPORT.md` |
 | UI, plugin and deployment QA | Independent tester | Every page at 1440, 900 and 390 px, for each role; consent and OAuth journeys in a real browser; the Claude Code plugin installed into a real Claude Code; Docker and README steps | `qa-ui/` (Playwright journeys and scripts), report `qa-ui/QA_UI_REPORT.md` |
 | Re-test | Independent tester (fresh run) | Each fixed UI finding re-checked against the fix, plus the new file viewer and Claude Code round-trip | `qa-ui/retest/`, report `qa-ui/retest/RETEST_REPORT.md` |
@@ -17,7 +17,7 @@ There were three layers, and two of them were written by an independent tester w
 
 | Suite | SQLite | PostgreSQL 16 |
 |---|---|---|
-| Build tests (`server/tests`) | 67 / 67 pass | 67 / 67 pass |
+| Build tests (`server/tests`) | 68 / 68 pass | 68 / 68 pass |
 | Backend QA (`qa/`) | 210 / 210 pass | 210 / 210 pass |
 | Docker image build and compose smoke test (`/healthz`, `/view`, `/api/auth/me`) | n/a | pass |
 
@@ -102,6 +102,7 @@ Run with Claude Code 2.1.323 in a clean home folder, against the server behind t
 - Running it again changed nothing and said "Already signed in".
 - Claude Code refuses to sign in to a plain `http://` server that isn't on the same computer, which is why the lab now uses https.
 - The PowerShell installer is the same steps; it is first run on a real Windows PC in the lab.
+- Asking Claude Code instead (the Connect page's prompt, which points at `/claude/setup.md`): a fresh Claude Code on the lab's Windows PC, in plan mode, read the steps, checked the plugin had no hooks or programs, proved Node reached the server with only `NODE_EXTRA_CA_CERTS`, and planned the install and sign-in. It refused to put the lab's first certificate (Caddy's own root CA) into Windows' trusted roots, because a CA could vouch for any site. The lab now uses a self-signed server certificate that is not a CA (CA:FALSE) and names only the lab address, and the setup page tells Claude how to check that before trusting it.
 
 ## What only the lab can test
 

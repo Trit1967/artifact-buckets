@@ -49,6 +49,9 @@
       </div>
       <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
       <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}. It adds the Artifact Buckets plugin to Claude Code, already pointed at this server. Running it again is safe.{#if setup.private_ca}{' '}This lab server uses its own certificate, so the first time, {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if}</p>
+      <div class="or"><span>or ask Claude Code</span></div>
+      <Copy text={setup.prompt} label="the prompt" />
+      <p class="note">Paste it into Claude Code. Claude reads the steps, checks them, explains each one and does them for you.</p>
     </div>
     <div class="card step">
       <span class="num mono">2</span>
@@ -191,6 +194,8 @@
   .dvi { width: 34px; height: 34px; border-radius: 9px; background: var(--raise); color: var(--text-2); display: grid; place-items: center; }
   .warn { color: var(--amber); }
   .os { align-self: flex-start; }
+  .or { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12px; margin-top: 4px; }
+  .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
   .rollout .ro-body { padding: 18px 22px 20px; display: flex; flex-direction: column; gap: 16px; }
   .policy { margin: 0; padding: 14px 16px; border-radius: 10px; background: #0F1012; border: 1px solid var(--line); font-size: 12.5px; line-height: 1.55; color: var(--text); overflow-x: auto; }
   .where { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; font-size: 13px; }

@@ -73,6 +73,16 @@ fi
 # Addresses (also updates an install made before the lab moved to https).
 sed -i '/^LAB_IP=/d; /^AB_PUBLIC_URL=/d; /^AB_INSTALL_URL=/d' .env
 printf 'LAB_IP=%s\nAB_PUBLIC_URL=%s\nAB_INSTALL_URL=http://%s:8090\n' "$IP" "$URL" "$IP" >> .env
+# Server certificate: self-signed, not a CA (CA:FALSE), valid only for the lab address. Trusting it on a PC
+# lets it vouch for this server and nothing else. Made again if the address changes.
+mkdir -p /srv/buckets/tls
+if ! openssl x509 -in /srv/buckets/tls/lab.crt -noout -ext subjectAltName 2>/dev/null | grep -qx "    IP Address:$IP"; then
+  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 \
+    -keyout /srv/buckets/tls/lab.key -out /srv/buckets/tls/lab.crt -subj "/CN=Artifact Buckets lab ($IP)" \
+    -addext "subjectAltName=IP:$IP" -addext "basicConstraints=critical,CA:FALSE" \
+    -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=serverAuth"
+  chmod 600 /srv/buckets/tls/lab.key
+fi
 docker compose -f docker-compose.yml -f deploy/lab/compose.lab.yml up -d --build
 echo
 echo "Up at $URL"

@@ -1,4 +1,4 @@
-# Lab prototype overrides: https on the VM's port 443 with Caddy's own lab certificate (the lab host forwards
+# Lab prototype overrides: https on the VM's port 443 with a self-signed server certificate (the lab host forwards
 # 8443 to it), plain http on port 80 only for the Claude Code installer. No domain-joined share yet. Use with:
 #   docker compose -f docker-compose.yml -f deploy/lab/compose.lab.yml up -d
 services:
@@ -9,14 +9,15 @@ services:
     volumes: !override
       - ./deploy/lab/Caddyfile.lab:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
+      - /srv/buckets/tls:/certs:ro
   app:
     environment:
       AB_BASE_URL: ${AB_PUBLIC_URL}
       AB_INSTALL_URL: ${AB_INSTALL_URL}
-      AB_INSTALL_CA_FILE: /caddy/caddy/pki/authorities/local/root.crt
+      AB_INSTALL_CA_FILE: /certs/lab.crt
       AB_SECURE_COOKIES: "true"
       AB_ZFS_SOCKET: /run/buckets/zfs.sock
     volumes:
       - /run/buckets:/run/buckets
-      - caddy-data:/caddy:ro
+      - /srv/buckets/tls/lab.crt:/certs/lab.crt:ro
     group_add: ["1500"]
