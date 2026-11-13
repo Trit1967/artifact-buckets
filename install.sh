@@ -30,6 +30,7 @@
 #
 # Licensed under the Apache License, Version 2.0.
 set -eu
+umask 022
 
 # ---- Names: change these to rename the project ---------------------------------------------------------
 APP_NAME="Artifact Buckets"
@@ -40,8 +41,12 @@ IMAGE_REPO="ghcr.io/trit1967/artifact-buckets"
 
 DIR="${AB_DIR:-/opt/$APP_SLUG}"
 # Run as the installed command (/usr/local/bin/artifact-buckets -> <folder>/artifact-buckets): use that folder.
-_self=$(readlink -f "$0" 2>/dev/null || true)
-if [ -z "${AB_DIR:-}" ] && [ -n "$_self" ] && [ -f "$(dirname "$_self")/compose.yml" ]; then DIR=$(dirname "$_self"); fi
+# Only for that installed copy: piped in (curl | sh), $0 is just "sh".
+case $0 in
+  */*) _self=$(readlink -f "$0" 2>/dev/null || true)
+       _sd=$(dirname "${_self:-/}")
+       if [ -z "${AB_DIR:-}" ] && [ "$(basename "${_self:-x}")" = "$APP_SLUG" ] && [ -f "$_sd/.$APP_SLUG-install" ]; then DIR=$_sd; fi ;;
+esac
 REF="${AB_REF:-main}"
 CLI="/usr/local/bin/$APP_SLUG"
 ZFS_UNIT="$APP_SLUG-zfs.service"
@@ -58,7 +63,7 @@ die()  { printf '%sError:%s %s\n' "$B" "$R" "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # Questions go to the terminal even when the script itself arrives on stdin (curl | sh).
-can_ask() { [ -z "$YES" ] && { : </dev/tty; } 2>/dev/null; }
+can_ask() { [ -z "$YES" ] && ( : </dev/tty ) 2>/dev/null; }
 ask() { # ask VAR "Question" default
   _d=$3
   if can_ask; then
@@ -100,7 +105,9 @@ env_set() { # env_set KEY VALUE (replaces any earlier line)
   chmod 600 "$_t"; mv "$_t" "$DIR/.env"
 }
 
-compose() { (cd "$DIR" && docker compose "$@"); }
+# One compose project (and local image) per install folder, so two installs never share containers.
+project() { if [ "$DIR" = "/opt/$APP_SLUG" ]; then printf '%s' "$APP_SLUG"; else printf '%s-%s' "$APP_SLUG" "$(basename "$DIR" | tr -c 'a-z0-9_-' '-' | sed 's/-*$//')"; fi; }
+compose() { (cd "$DIR" && docker compose -p "$(project)" "$@"); }
 
 is_ip() { printf '%s' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; }
 is_private_ip() {
@@ -119,9 +126,15 @@ primary_ip() {
 }
 port_busy() {
   if have ss; then ss -ltnH "sport = :$1" 2>/dev/null | grep -q . && return 0; return 1; fi
-  if have netstat; then netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1\$" && return 0; fi
-  return 1
+  if have netstat; then netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1\$" && return 0; return 1; fi
+  # Neither tool: read the kernel's socket tables (state 0A = listening).
+  _hex=$(printf '%04X' "$1")
+  cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk -v p=":$_hex" '$4 == "0A" && substr($2, length($2) - 4) == p { f = 1 } END { exit !f }'
 }
+free_port() { # free_port START: the first port from START that nothing listens on
+  _p=$1; while port_busy "$_p"; do _p=$((_p + 1)); done; printf '%s' "$_p"
+}
+valid_port() { case $1 in ''|*[!0-9]*) return 1 ;; esac; [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
 fetch() { # fetch URL FILE
   if have curl; then curl -fsSL "$1" -o "$2"; elif have wget; then wget -qO "$2" "$1"; else die "Needs curl or wget"; fi
 }
@@ -156,9 +169,10 @@ ensure_docker() {
     say "Docker isn't installed. It's needed to run $APP_NAME (from get.docker.com, the official script)."
     yesno "Install Docker now?" Y || die "Install Docker (https://docs.docker.com/engine/install/) and run again."
     step "Installing Docker"
-    fetch https://get.docker.com /tmp/get-docker.sh
-    sh /tmp/get-docker.sh >/dev/null
-    rm -f /tmp/get-docker.sh
+    _gd=$(mktemp); _log=$(mktemp)
+    fetch https://get.docker.com "$_gd" || die "Couldn't download get.docker.com."
+    if ! sh "$_gd" >"$_log" 2>&1; then tail -n 20 "$_log" >&2; rm -f "$_gd"; die "Installing Docker failed (log above, full log in $_log)."; fi
+    rm -f "$_gd" "$_log"
   fi
   if ! docker info >/dev/null 2>&1; then
     if have systemctl; then systemctl enable --now docker >/dev/null 2>&1 || true; fi
@@ -177,6 +191,7 @@ fetch_source() {
   if [ -z "$SOURCE" ] && [ -n "$_here" ] && [ -f "$_here/deploy/install/compose.yml" ] && [ "$_here" != "$DIR/src" ]; then
     SOURCE=$_here
   fi
+  [ -n "$SOURCE" ] || SOURCE=$(env_get AB_SOURCE)
   [ -n "$SOURCE" ] || SOURCE="https://codeload.github.com/$REPO/tar.gz/$REF"
   step "Getting $APP_NAME from $SOURCE"
   _new="$DIR/src.new"
@@ -186,13 +201,15 @@ fetch_source() {
         --exclude=./data --exclude=server/data --exclude=web/dist -cf - .) | tar -C "$_new" -xf -
   else
     case $SOURCE in
-      http://*|https://*) fetch "$SOURCE" "$DIR/src.tar.gz" || die "Couldn't download $SOURCE (if the repository is private, run install.sh from a clone instead)." ;;
-      *) [ -f "$SOURCE" ] || die "No such source: $SOURCE"; cp "$SOURCE" "$DIR/src.tar.gz" ;;
+      http://*|https://*) fetch "$SOURCE" "$DIR/src.tar.gz" || { rm -rf "$_new" "$DIR/src.tar.gz"; die "Couldn't download $SOURCE (if the repository is private, run install.sh from a clone instead)."; } ;;
+      *) [ -f "$SOURCE" ] || { rm -rf "$_new"; die "No such source: $SOURCE"; }; cp "$SOURCE" "$DIR/src.tar.gz" ;;
     esac
-    tar -xzf "$DIR/src.tar.gz" -C "$_new" --strip-components=1
+    tar -xzf "$DIR/src.tar.gz" -C "$_new" --strip-components=1 || { rm -rf "$_new" "$DIR/src.tar.gz"; die "$SOURCE isn't a readable .tar.gz."; }
     rm -f "$DIR/src.tar.gz"
   fi
-  [ -f "$_new/deploy/install/compose.yml" ] || die "That source doesn't look like $APP_NAME."
+  [ -f "$_new/deploy/install/compose.yml" ] || { rm -rf "$_new"; die "That source doesn't look like $APP_NAME."; }
+  # Upgrades fetch from the same place unless told otherwise (GitHub is the default and isn't recorded).
+  case $SOURCE in https://codeload.github.com/*) env_set AB_SOURCE "" ;; *) env_set AB_SOURCE "$SOURCE" ;; esac
   rm -rf "$DIR/src"; mv "$_new" "$DIR/src"
   cp "$DIR/src/deploy/install/compose.yml" "$DIR/compose.yml"
   # Copy then rename: this script may be the one running (sudo artifact-buckets upgrade).
@@ -213,7 +230,7 @@ choose_image() {
     [ -z "$IMAGE" ] || die "Couldn't pull $IMAGE"
     say "${D}No published image yet; building it here instead (a few minutes, once).${R}"
   fi
-  _img="$APP_SLUG/app:local"
+  _img="$(project)/app:local"
   OLD_IMAGE_ID=$(docker images -q "$_img" 2>/dev/null || true)
   step "Building the app image"
   if [ -n "$CA_FILE" ]; then
@@ -231,25 +248,41 @@ choose_address() {
     if [ -z "$_d" ]; then _f=$(hostname -f 2>/dev/null || true); case $_f in *.*) _d=$_f ;; *) _d=$_ip ;; esac; fi
     ask HOST "Address people will use to reach it (name or IP)" "$_d"
   fi
-  HOST=${HOST#http://}; HOST=${HOST#https://}; HOST=${HOST%%/*}; HOST=${HOST%%:*}
+  HOST=${HOST#http://}; HOST=${HOST#https://}; HOST=${HOST%%/*}
   [ -n "$HOST" ] || die "An address is needed (--host)."
+  case $HOST in
+    *:*:*) die "IPv6 addresses aren't supported yet; use a name or an IPv4 address." ;;
+    *:*) die "Give the port separately: --host ${HOST%%:*} --https-port ${HOST#*:}" ;;
+  esac
+  printf '%s' "$HOST" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$' || die "'$HOST' isn't a valid host name or IPv4 address."
+  HOST=$(printf '%s' "$HOST" | tr '[:upper:]' '[:lower:]')
   if is_ip "$HOST"; then HOST_IP=$HOST; else HOST_IP=$(resolve "$HOST"); [ -n "$HOST_IP" ] || HOST_IP=$_ip; fi
 
   if [ -z "$EMAIL" ]; then
     ask EMAIL "Admin email (also for Let's Encrypt notices; Enter to skip)" "$(env_get AB_BOOTSTRAP_EMAIL)"
   fi
 
+  case $EMAIL in
+    '') ;;
+    *[!A-Za-z0-9._%+@-]*|*@*@*) die "'$EMAIL' doesn't look like an email address." ;;
+    *@*.*) ;;
+    *) die "'$EMAIL' doesn't look like an email address." ;;
+  esac
+
   # Ports: keep what an earlier install used.
   [ -n "$HTTPS_PORT" ] || HTTPS_PORT=$(env_get AB_HTTPS_PORT)
   [ -n "$HTTP_PORT" ] || HTTP_PORT=$(env_get AB_HTTP_PORT)
   if [ -z "$HTTPS_PORT" ]; then
     HTTPS_PORT=443
-    if port_busy 443; then warn "Port 443 is in use on this machine."; ask HTTPS_PORT "HTTPS port to use instead" 8443; fi
+    if port_busy 443; then warn "Port 443 is in use on this machine."; ask HTTPS_PORT "HTTPS port to use instead" "$(free_port 8443)"; fi
   fi
   if [ -z "$HTTP_PORT" ]; then
     HTTP_PORT=80
-    if port_busy 80; then warn "Port 80 is in use on this machine."; ask HTTP_PORT "HTTP port to use instead" 8080; fi
+    if port_busy 80; then warn "Port 80 is in use on this machine."; ask HTTP_PORT "HTTP port to use instead" "$(free_port 8080)"; fi
   fi
+  valid_port "$HTTPS_PORT" || die "'$HTTPS_PORT' isn't a port number."
+  valid_port "$HTTP_PORT" || die "'$HTTP_PORT' isn't a port number."
+  [ "$HTTPS_PORT" != "$HTTP_PORT" ] || die "The HTTPS and HTTP ports must differ."
 
   # Certificate: Let's Encrypt for a public name on 80/443, else a self-signed one made here.
   if [ "$TLS" = auto ]; then
@@ -382,7 +415,11 @@ setup_zfs() {
     step "Creating ZFS dataset $ZFS"
     zfs create -p -o mountpoint="$DIR/data/tree" -o compression=lz4 -o atime=off -o xattr=sa \
       -o acltype=posixacl -o snapdir=hidden "$ZFS"
+    env_set AB_ZFS_CREATED 1
+  elif [ "$(zfs get -H -o value mountpoint "$ZFS")" != "$DIR/data/tree" ]; then
+    die "ZFS dataset $ZFS exists but isn't mounted at $DIR/data/tree. Run: zfs set mountpoint=$DIR/data/tree $ZFS (or give --zfs a new dataset name)."
   fi
+  [ "$(zfs get -H -o value mounted "$ZFS")" = yes ] || zfs mount "$ZFS"
   groupadd -f -r "$ZFS_GROUP"
   _gid=$(getent group "$ZFS_GROUP" | cut -d: -f3)
   mkdir -p "$DIR/bin" "$DIR/data/zfs" "$DIR/data/run"
@@ -471,9 +508,13 @@ cmd_install() {
   say "${B}$APP_NAME installer${R}  ${D}($DIR)${R}"
   ensure_tools
   ensure_docker
-  mkdir -p "$DIR"; chmod 755 "$DIR"
+  if [ -d "$DIR" ] && [ ! -f "$DIR/.$APP_SLUG-install" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
+    die "$DIR already has files and isn't a $APP_NAME install. Choose an empty or new folder with --dir."
+  fi
   choose_address
   choose_storage
+  mkdir -p "$DIR"; chmod 755 "$DIR"
+  printf 'This folder is a %s install. Remove it with: sudo %s uninstall\n' "$APP_NAME" "$APP_SLUG" >"$DIR/.$APP_SLUG-install"
   fetch_source
   write_env
   make_certificate
@@ -487,7 +528,7 @@ cmd_install() {
 
 cmd_upgrade() {
   need_root
-  [ -f "$DIR/.env" ] || die "$APP_NAME isn't installed in $DIR."
+  [ -f "$DIR/.$APP_SLUG-install" ] && [ -f "$DIR/.env" ] || die "$APP_NAME isn't installed in $DIR."
   ensure_docker
   fetch_source
   _cur=$(env_get AB_IMAGE)
@@ -502,7 +543,7 @@ cmd_upgrade() {
 
 cmd_uninstall() {
   need_root
-  [ -d "$DIR" ] || die "$APP_NAME isn't installed in $DIR."
+  [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR (no install marker there), so nothing was removed."
   ZFS=$(env_get AB_ZFS_DATASET)
   if [ -n "$PURGE" ]; then
     say "This removes $APP_NAME and ${B}deletes every file and the database${R} in $DIR${ZFS:+ (and ZFS dataset $ZFS)}."
@@ -525,11 +566,13 @@ cmd_uninstall() {
   getent group "$ZFS_GROUP" >/dev/null 2>&1 && groupdel "$ZFS_GROUP" 2>/dev/null || true
   [ "$(readlink "$CLI" 2>/dev/null)" = "$DIR/$APP_SLUG" ] && rm -f "$CLI"
   if [ -n "$PURGE" ]; then
-    if [ -n "$ZFS" ] && have zfs && zfs list -H -o name "$ZFS" >/dev/null 2>&1; then zfs destroy -r "$ZFS"; fi
+    # Only a dataset this installer created; one you brought stays.
+    if [ -n "$ZFS" ] && [ "$(env_get AB_ZFS_CREATED)" = 1 ] && have zfs && zfs list -H -o name "$ZFS" >/dev/null 2>&1; then zfs destroy -r "$ZFS"; fi
     rm -rf "$DIR"
     say "Removed $APP_NAME and its data."
   else
     rm -rf "${DIR:?}/src" "${DIR:?}/src.new" "${DIR:?}/bin" "$DIR/compose.yml" "$DIR/Caddyfile" "${DIR:?}/${APP_SLUG:?}"
+    # The marker stays with the data so the folder can still be purged later.
     say "Removed $APP_NAME. Your data is still in $DIR (delete it with: sudo rm -rf $DIR${ZFS:+, and zfs destroy -r $ZFS})."
   fi
   say "${D}Docker itself was left installed.${R}"
@@ -542,7 +585,25 @@ cmd_status() {
   [ -z "$(env_get AB_ZFS_DATASET)" ] || systemctl --no-pager --lines=0 status "$ZFS_UNIT" 2>/dev/null | sed -n 1,3p || true
 }
 
-usage() { sed -n '2,32p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//' || say "See https://github.com/$REPO"; }
+usage() {
+  cat <<USAGE
+$APP_NAME installer.  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | sudo sh -s -- [options]
+
+  install (default)   --host NAME  --email ADDR  --tls auto|letsencrypt|self-signed|files  --cert F --key F
+                      --https-port N  --http-port N  --zfs POOL[/DATASET]  --no-zfs  --image REF  --build
+                      --source DIR|URL  --ref REF  --ca-file F  --dir DIR  --yes
+  status | logs [service] | password | restart
+  upgrade             [--source DIR|URL] [--build] [--image REF]
+  uninstall           [--purge] [--yes]   (keeps files and database unless --purge)
+
+Details: https://github.com/$REPO#install
+USAGE
+}
+
+need() {
+  if [ $# -lt 2 ]; then die "$1 needs a value."; fi
+  case $2 in --*) die "$1 needs a value." ;; esac
+}
 
 main() {
   _cmd=install
@@ -550,28 +611,32 @@ main() {
   if [ "$_cmd" = logs ]; then [ -f "$DIR/compose.yml" ] || die "Not installed."; compose logs --tail 200 -f "$@"; return; fi
   while [ $# -gt 0 ]; do
     case $1 in
-      --host) HOST=$2; HOST_GIVEN=1; shift 2 ;;
-      --email) EMAIL=$2; shift 2 ;;
-      --tls) TLS=$2; HOST_GIVEN=1; shift 2 ;;
-      --cert) CERT=$2; shift 2 ;;
-      --key) KEY=$2; shift 2 ;;
-      --https-port) HTTPS_PORT=$2; shift 2 ;;
-      --http-port) HTTP_PORT=$2; shift 2 ;;
-      --zfs) ZFS=$2; shift 2 ;;
+      --host) need "$@"; HOST=$2; HOST_GIVEN=1; shift 2 ;;
+      --email) need "$@"; EMAIL=$2; shift 2 ;;
+      --tls) need "$@"; TLS=$2; HOST_GIVEN=1; shift 2 ;;
+      --cert) need "$@"; CERT=$2; shift 2 ;;
+      --key) need "$@"; KEY=$2; shift 2 ;;
+      --https-port) need "$@"; HTTPS_PORT=$2; shift 2 ;;
+      --http-port) need "$@"; HTTP_PORT=$2; shift 2 ;;
+      --zfs) need "$@"; ZFS=$2; shift 2 ;;
       --no-zfs) NO_ZFS=1; shift ;;
-      --image) IMAGE=$2; shift 2 ;;
+      --image) need "$@"; IMAGE=$2; shift 2 ;;
       --build) BUILD=1; shift ;;
-      --source) SOURCE=$2; shift 2 ;;
-      --ref) REF=$2; shift 2 ;;
-      --ca-file) CA_FILE=$2; shift 2 ;;
-      --dir) DIR=$2; shift 2 ;;
+      --source) need "$@"; SOURCE=$2; shift 2 ;;
+      --ref) need "$@"; REF=$2; shift 2 ;;
+      --ca-file) need "$@"; CA_FILE=$2; shift 2 ;;
+      --dir) need "$@"; DIR=$2; shift 2 ;;
       --yes|-y) YES=1; shift ;;
       --purge) PURGE=1; shift ;;
       *) die "Unknown option $1 (try --help)" ;;
     esac
   done
+  DIR=$(printf '%s' "$DIR" | tr -s /); DIR=${DIR%/}
   case $DIR in /?*) ;; *) die "--dir must be an absolute folder, not '$DIR'." ;; esac
-  DIR=${DIR%/}
+  case $DIR in
+    /bin|/boot|/dev|/etc|/home|/lib|/lib64|/media|/mnt|/opt|/proc|/root|/run|/sbin|/srv|/sys|/tmp|/usr|/usr/*|/var|/var/lib)
+      die "--dir $DIR is a system folder; use a folder of its own, such as /opt/$APP_SLUG." ;;
+  esac
   case $_cmd in
     install) cmd_install ;;
     upgrade) cmd_upgrade ;;
