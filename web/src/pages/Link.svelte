@@ -20,7 +20,7 @@
 
   if (code) {
     api.get(`/api/sync/link/${encodeURIComponent(code)}`, null, { quiet: true })
-      .then((d) => { info = d; keep = new Set((d.folders || []).map((f) => f.folder)); if (d.status !== 'pending') error = 'used'; })
+      .then((d) => { info = d; keep = new Set((d.folders || []).map((f) => f.folder)); if (d.status !== 'pending') error = d.status === 'denied' ? 'used' : 'connected'; })
       .catch((e) => { error = e.status === 404 ? 'expired' : 'other'; });
   }
 
@@ -29,7 +29,9 @@
   const nFiles = $derived(chosen.reduce((a, f) => a + f.files, 0));
   const nBytes = $derived(chosen.reduce((a, f) => a + f.bytes, 0));
   const allOn = $derived(folders.length > 0 && chosen.length === folders.length);
-  const label = (f) => f.folder === 'inbox' ? 'Loose files' : f.folder.slice('projects/'.length);
+  const label = (f) => f.label || (f.folder === 'inbox' ? 'Loose files' : f.folder.slice('projects/'.length));
+  // The end of a path is the part people recognise.
+  const tail = (p) => (p.length > 34 ? '…' + p.slice(-33) : p);
   const dest = (f) => `${home}/${f.folder}`;
 
   function toggle(f) { const k = new Set(keep); k.has(f.folder) ? k.delete(f.folder) : k.add(f.folder); keep = k; }
@@ -52,10 +54,10 @@
     {#if error}
       <span class="tile"><Logo size={22} /></span>
       <div class="txt">
-        <h1>{error === 'expired' ? 'This link has expired' : error === 'used' ? 'This link was already used' : error === 'missing' ? 'There’s no code in this link' : 'Something went wrong'}</h1>
-        <p class="muted">Links last ten minutes and work once. On the computer, run setup again and it opens a new one.</p>
+        <h1>{error === 'connected' ? `${info?.computer || 'This computer'} is connected` : error === 'expired' ? 'This link has expired' : error === 'used' ? 'This link was already used' : error === 'missing' ? 'There’s no code in this link' : 'Something went wrong'}</h1>
+        <p class="muted">{error === 'connected' ? 'This link has done its job. You can close this tab.' : 'Links last ten minutes and work once. On the computer, run setup again and it opens a new one.'}</p>
       </div>
-      <a class="btn" href="/connect" style="align-self:flex-start">Connect Claude Code</a>
+      <a class="btn" href="/connect" style="align-self:flex-start">{error === 'connected' ? 'See connected computers' : 'Connect Claude Code'}</a>
     {:else if !info}
       <span class="tile"><Logo size={22} /></span>
       <p class="muted" style="margin:0">Checking the link…</p>
@@ -120,13 +122,14 @@
                   <span class="fi"><Icon name={f.folder === 'inbox' ? 'inbox' : 'folder'} size={15} /></span>
                   <span class="fn">
                     <span class="nm">{label(f)}</span>
-                    {#if f.source}<span class="src mono" title={f.source}><bdo dir="ltr">{f.source}</bdo></span>{:else}<span class="src">Files from outside a project</span>{/if}
+                    {#if f.source}<span class="src mono" title={f.source}>{tail(f.source)}</span>{:else}<span class="src">Files from outside a project</span>{/if}
                   </span>
                   <span class="ct">{files(f.files)}<span class="sz">{bytes(f.bytes)}</span></span>
                 </label>
               </li>
             {/each}
           </ul>
+          {#if info.hidden}<p class="note warnline"><Icon name="info" size={13} /> {info.hidden} more {info.hidden === 1 ? 'folder' : 'folders'} with unusual names {info.hidden === 1 ? 'isn’t' : 'aren’t'} listed, and won’t be copied.</p>{/if}
           <p class="note">Copies go to <span class="mono">{home}/projects</span> and <span class="mono">inbox</span>, then new files follow after each Claude Code reply. Secrets, build folders and anything in git are always left out.</p>
         {:else}
           <div class="bh"><div>
@@ -139,14 +142,15 @@
       <p class="note" style="margin:0"><Icon name="lock" size={13} /> The computer can only add files to your own folders. It can’t open, change, delete or share anything already here, and you can turn it off at any time under Connect Claude Code.</p>
 
       <div class="acts">
-        <button class="linkish" disabled={busy} onclick={() => decide('deny')}>I didn’t start this</button>
-        <span class="grow"></span>
         <button class="btn" disabled={busy} onclick={() => decide('connect')}>Connect without syncing</button>
         <button class="btn pri" disabled={busy} onclick={() => decide('allow')}>
           {#if folders.length && nFiles}Connect and copy {files(nFiles)}{:else}Connect and sync{/if}
         </button>
       </div>
-      {#if folders.length && nFiles}<p class="tot faint">{chosen.length} of {folders.length} folders · {bytes(nBytes)}</p>{/if}
+      <div class="foot">
+        <button class="linkish" disabled={busy} onclick={() => decide('deny')}>I didn’t start this</button>
+        {#if folders.length && nFiles}<span class="tot faint">{chosen.length} of {folders.length} folders · {bytes(nBytes)}</span>{/if}
+      </div>
     {/if}
   </div>
 </div>
@@ -188,22 +192,20 @@
   .nm { font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .off .nm { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--line-hover); }
   .src { font-size: 11.5px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .src.mono { direction: rtl; text-align: left; }
   .ct { font-size: 12.5px; color: var(--text-2); text-align: right; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
   .ct .sz { font-size: 11.5px; color: var(--faint); }
   .off .ct { color: var(--faint); }
   .note :global(.ic) { vertical-align: -2px; color: var(--faint); }
-  .acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .grow { flex: 1; }
+  .acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .foot { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-top: -10px; }
   .linkish { background: none; border: 0; padding: 0; color: var(--faint); font: inherit; font-size: 12.5px; cursor: pointer; }
   .linkish:hover { color: var(--red); text-decoration: underline; }
-  .tot { margin: -12px 0 0; font-size: 12px; text-align: right; }
+  .tot { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .warnline { margin: 0; }
   @media (max-width: 520px) {
     .acts { flex-direction: column-reverse; align-items: stretch; }
     .acts .btn { justify-content: center; }
-    .grow { display: none; }
-    .linkish { align-self: center; margin-top: 4px; }
-    .tot { text-align: center; margin-top: -6px; }
+    .foot { flex-direction: column-reverse; gap: 8px; margin-top: -4px; }
   }
   @media (max-width: 420px) {
     .box { padding: 22px; }

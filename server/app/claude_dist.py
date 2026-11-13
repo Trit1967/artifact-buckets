@@ -245,7 +245,8 @@ turn on syncing (or sync again): then do the "Connect this computer" step and th
 
 1. Save the sync script to `~/.artifact-buckets/` (on Windows `%USERPROFILE%\\.artifact-buckets\\`).
    Windows: download {b}/claude/sync.ps1; its SHA-256 must be `{sync_sha}` (otherwise delete it and stop).
-   macOS and Linux: download {base}/claude/sync.sh. It's the same script the plugin ships.
+   macOS and Linux: download {base}/claude/sync.sh{' with `curl --cacert ~/.artifact-buckets/server.crt`' if c else ''}.
+   It's the same script the plugin ships.
 2. Run it with `link {base}` (Windows:
    `powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\\.artifact-buckets\\sync.ps1" link {base}`;
    macOS and Linux: `sh ~/.artifact-buckets/sync.sh link {base}`). It first looks through Claude Code's history
@@ -266,7 +267,7 @@ through without another click. (If it shows a sign-in or Connect page anyway, th
 
 ## {n + 4}. Copy the existing files
 
-If `~/.artifact-buckets/sync.conf` has a `token=` line (they chose to sync), run the script with `run`.
+If `~/.artifact-buckets/sync.conf` has a `mode=sync` line (they chose to sync), run the script with `run`.
 It copies the folders they kept and prints what it copied. From now on the plugin's hook copies new and
 changed files after each reply. The person can pause it with `off`, resume with `on`, or turn the computer
 off under Connect Claude Code in the web app.
@@ -285,7 +286,7 @@ shows `{PLUGIN}`, `~/.artifact-buckets` is gone, and `NODE_EXTRA_CA_CERTS` no lo
 person to close open Claude Code windows. Only if the script can't run, do these steps by hand:
 
 1. If `~/.artifact-buckets/sync.ps1` or `sync.sh` exists, run it with `unlink`. That ends this computer's sync
-   and its Claude Code sign-in on the server.
+   and its Claude Code sign-in on the server. Then `claude mcp logout plugin:{PLUGIN}:{SERVER}`.
 2. `claude plugin uninstall {PLUGIN}@{MARKETPLACE}`, then `claude plugin marketplace remove {MARKETPLACE}`.
 3. Remove `NODE_EXTRA_CA_CERTS` if it points at `.artifact-buckets/server.crt`, and the
    `# Artifact Buckets server certificate` line from shell profiles. Older versions of setup also added the
@@ -434,7 +435,7 @@ else {
   if ($LASTEXITCODE -ne 0) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
   Step "Signed in"
   $conf = Join-Path $dir 'sync.conf'
-  if ((Test-Path $conf) -and ((Get-Content -Raw $conf) -match '(?m)^token=.')) { Write-Host ""; Sync-Do run }
+  if ((Test-Path $conf) -and ((Get-Content -Raw $conf) -match '(?m)^mode=sync')) { Write-Host ""; Sync-Do run }
 }
 
 Write-Host ""
@@ -475,7 +476,11 @@ if [ -n "$CA_URL" ]; then
   line="export NODE_EXTRA_CA_CERTS=\"$ca\"  # Artifact Buckets server certificate"
   for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
     [ -f "$rc" ] || [ "$rc" = "$HOME/.profile" ] || { [ "$rc" = "$HOME/.zshrc" ] && [ "$(uname)" = Darwin ]; } || continue
-    grep -qsE "Artifact Buckets (lab|server) certificate" "$rc" || printf '\n%s\n' "$line" >> "$rc"
+    if ! grep -qsE "Artifact Buckets (lab|server) certificate" "$rc"; then
+      # Start on a new line if the file doesn't end with one; add nothing else, so removing it leaves no trace.
+      [ ! -s "$rc" ] || [ -z "$(tail -c 1 "$rc")" ] || printf '\n' >> "$rc"
+      printf '%s\n' "$line" >> "$rc"
+    fi
   done
   export NODE_EXTRA_CA_CERTS="$ca"
   CURL_CA="--cacert $ca"
@@ -503,7 +508,7 @@ else
   say "Finishing sign-in..."
   claude mcp login '{{MCP_NAME}}' </dev/null >/dev/null || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
   say "Signed in"
-  if grep -qs '^token=.' "$dir/sync.conf"; then printf '\n'; sh "$sync" run || true; fi
+  if grep -qs '^mode=sync' "$dir/sync.conf"; then printf '\n'; sh "$sync" run || true; fi
 fi
 
 printf '\n  Done. Claude Code can now save to Artifact Buckets.\n  Open a new terminal, start Claude Code and try: save this to my buckets\n'
@@ -530,6 +535,7 @@ if (Test-Path -LiteralPath $sync) { & $ps -NoProfile -ExecutionPolicy Bypass -Fi
 
 # 2. The plugin (its MCP connection, skills and sync hook) and the marketplace it came from.
 if (Get-Command claude -ErrorAction SilentlyContinue) {
+  claude mcp logout '{{MCP_NAME}}' 2>&1 | Out-Null   # the sign-in Claude Code keeps on this computer
   $list = (claude plugin list 2>&1 | Out-String)
   if ($list -match '{{PLUGIN_RE}}') { claude plugin uninstall {{PLUGIN}} 2>&1 | Out-Null; Step "Plugin removed" }
   $known = (claude plugin marketplace list 2>&1 | Out-String)
@@ -557,7 +563,11 @@ foreach ($c in @(Get-ChildItem Cert:\CurrentUser\Root -ErrorAction SilentlyConti
 }
 
 # 4. Its own folder: the sync script, its settings and what it remembers.
-if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue; Step "Removed $dir" }
+if (Test-Path -LiteralPath $dir) {
+  Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+  if (Test-Path -LiteralPath $dir) { Step "Couldn't remove all of $dir (a file may be open). Delete it when nothing is using it." }
+  else { Step "Removed $dir" }
+}
 
 Write-Host ""
 Write-Host "  Done. Artifact Buckets is removed from this computer." -ForegroundColor Green
@@ -581,6 +591,7 @@ dir="$HOME/.artifact-buckets"
 
 # 2. The plugin (its MCP connection, skills and sync hook) and the marketplace it came from.
 if command -v claude >/dev/null 2>&1; then
+  claude mcp logout '{{MCP_NAME}}' </dev/null >/dev/null 2>&1 || true   # the sign-in Claude Code keeps here
   if claude plugin list 2>/dev/null | grep -qE '{{PLUGIN_RE}}'; then claude plugin uninstall {{PLUGIN}} >/dev/null 2>&1 && say "Plugin removed"; fi
   if claude plugin marketplace list 2>/dev/null | grep -q '{{MARKETPLACE}}'; then
     claude plugin marketplace remove {{MARKETPLACE}} >/dev/null 2>&1 && say "Plugin source removed"; fi
@@ -591,6 +602,7 @@ fi
 for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
   if grep -qsE "Artifact Buckets (lab|server) certificate" "$rc"; then
     sed -i.ab-bak -E '/Artifact Buckets (lab|server) certificate/d' "$rc" && rm -f "$rc.ab-bak" && say "Removed the certificate line from $rc"
+    [ -s "$rc" ] || rm -f "$rc"   # setup created it just for that line
   fi
 done
 if [ "$(uname)" = Darwin ] && [ -n "$CA_SHA" ]; then
@@ -599,7 +611,7 @@ if [ "$(uname)" = Darwin ] && [ -n "$CA_SHA" ]; then
 fi
 
 # 4. Its own folder: the sync script, its settings and what it remembers.
-[ -d "$dir" ] && rm -rf "$dir" && say "Removed $dir"
+if [ -d "$dir" ]; then rm -rf "$dir" && say "Removed $dir" || say "Couldn't remove all of $dir."; fi
 
 printf '\n  Done. Artifact Buckets is removed from this computer.\n  Your files on %s are still there. Open a new terminal to finish.\n\n' "$SERVER"
 """

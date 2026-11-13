@@ -410,7 +410,9 @@ def tokens_list(all: bool = False, actor: Actor = Depends(current), db: Session 
         accounts.require_admin(actor)
     else:
         q = q.where(Token.user_id == actor.user.id)
-    rows = [mcp.token_info(db, t) for t in db.scalars(q.order_by(Token.created_at.desc()))]
+    # A computer connected without syncing holds a read-only computer key; it isn't a "computer that syncs".
+    rows = [mcp.token_info(db, t) for t in db.scalars(q.order_by(Token.created_at.desc()))
+            if not (t.kind == "sync" and t.scope != "write")]
     now = utcnow()
     for r in rows:
         if r["expires_at"]:

@@ -28,6 +28,7 @@ esac
 
 DIR=${ARTIFACT_BUCKETS_HOME:-$HOME/.artifact-buckets}
 CONF=$DIR/sync.conf
+SKIPF=$DIR/skip-folders   # folders the person unticked when connecting ("projects/<name>" or "inbox"), one a line
 STATE=$DIR/state
 CLAUDE_DIR=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 umask 077
@@ -67,9 +68,13 @@ link() {
   [ -f "$DIR/server.crt" ] && CA=$DIR/server.crt
   name=$(hostname 2>/dev/null | cut -d. -f1); [ -n "$name" ] || name="This computer"
   say "Looking for files Claude has already made here (the first time can take a minute)…"
-  rm -f "$DIR/skip-folders" "$STATE"/sent.tsv "$STATE"/last-run "$STATE"/next-run   # a new link starts afresh
-  q=$QUIET; QUIET=1; sync_ dry; QUIET=$q
-  body=$(printf '{"computer":"%s","folders":%s}' "$(printf '%s' "$name" | tr -d '"\\')" "$(folders_json)")
+  # A full look, in its own scratch folder: the current link, what was sent and what's skipped stay as they
+  # are until the person actually connects in the browser.
+  keep_state=$STATE; keep_skip=$SKIPF; q=$QUIET
+  STATE=$DIR/link-scan; rm -rf "$STATE"; mkdir -p "$STATE"; SKIPF=/dev/null; QUIET=1
+  sync_ dry; folders=$(folders_json)
+  rm -rf "$STATE"; STATE=$keep_state; SKIPF=$keep_skip; QUIET=$q
+  body=$(printf '{"computer":"%s","folders":%s}' "$(printf '%s' "$name" | tr -d '"\\')" "$folders")
   start=$(printf '%s' "$body" | curl_ -fsS -X POST -H 'content-type: application/json' --data-binary @- "$srv/api/sync/link/start") \
     || die "Couldn't reach $srv"
   code=$(printf '%s' "$start" | sed -n 's/.*"code":"\([^"]*\)".*/\1/p')
@@ -83,20 +88,23 @@ link() {
     r=$(curl_ -fsS -X POST -H 'content-type: application/json' --data "{\"poll\":\"$poll\"}" "$srv/api/sync/link/poll") || continue
     st=$(printf '%s' "$r" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
     case "$st" in
-      approved)
+      approved|connected)
         tok=$(printf '%s' "$r" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
         max=$(printf '%s' "$r" | sed -n 's/.*"max_file_bytes":\([0-9]*\).*/\1/p')
         home=$(printf '%s' "$r" | sed -n 's/.*"home":"\([^"]*\)".*/\1/p')
-        printf '%s' "$r" | sed -n 's/.*"skip":\[\([^]]*\)\].*/\1/p' | tr ',' '\n' | sed -n 's/^ *"\(.*\)" *$/\1/p' \
-          | sed 's/\\\\/\\/g; s/\\"/"/g' > "$DIR/skip-folders"
+        # A new link starts afresh: everything it is allowed to copy is copied again (the server skips
+        # files it already has).
+        rm -f "$STATE"/sent.tsv "$STATE"/last-run "$STATE"/next-run
+        : > "$SKIPF.new"
+        for x in $(printf '%s' "$r" | sed -n 's/.*"skip_b64":"\([^"]*\)".*/\1/p' | tr ',' ' '); do
+          printf '%s' "$x" | { base64 -d 2>/dev/null || base64 -D; } >> "$SKIPF.new"; printf '\n' >> "$SKIPF.new"
+        done
+        mv "$SKIPF.new" "$SKIPF"
+        if [ "$st" = approved ]; then en=on; mode=sync; else en=off; mode=connect; fi
         { echo "server=$srv"; echo "token=$tok"; echo "computer=$name"; echo "home=$home"; echo "max=${max:-524288000}"
-          echo "enabled=on"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
-        printf '  Connected. Files Claude makes on this computer go to %s\n\n' "$home"
-        return 0 ;;
-      connected)
-        home=$(printf '%s' "$r" | sed -n 's/.*"home":"\([^"]*\)".*/\1/p')
-        { echo "server=$srv"; echo "computer=$name"; echo "home=$home"; echo "enabled=off"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
-        printf '  Connected, without syncing. Nothing will be copied from this computer.\n\n'
+          echo "enabled=$en"; echo "mode=$mode"; [ -n "$CA" ] && echo "ca=$CA"; } > "$CONF"
+        if [ "$mode" = sync ]; then printf '  Connected. Files Claude makes on this computer go to %s\n\n' "$home"
+        else printf '  Connected, without syncing. Nothing will be copied from this computer.\n\n'; fi
         return 0 ;;
       denied) die "Not connected: it was declined in the browser." ;;
       expired) die "The link expired. Run this again." ;;
@@ -183,6 +191,7 @@ place() {
 sync_() {   # $1 = dry | send
   mode=$1
   [ "$mode" = dry ] || [ -n "$TOKEN" ] || die "This computer isn't linked yet. Run: sync.sh link <server>"
+  [ "$mode" = dry ] || [ "$(conf mode)" != connect ] || die "This computer is connected without syncing. To sync, connect again: sync.sh link"
   MAX=$(conf max); home=$(conf home); [ -n "$home" ] || home="your folder"
   marker=$STATE/last-run; next=$STATE/next-run
   : > "$next"
@@ -197,9 +206,9 @@ sync_() {   # $1 = dry | send
     case "$p" in skip*) printf '%s\t%s\n' "$p" "$f" >> "$plan"; continue ;; esac
     where=$(printf '%s' "$p" | cut -f1); project=$(printf '%s' "$p" | cut -f2); rel=$(printf '%s' "$p" | cut -f3-)
     dest="$where/$project/$rel"
-    if [ -s "$DIR/skip-folders" ]; then
+    if [ -s "$SKIPF" ]; then
       fo=$( [ "$where" = projects ] && echo "projects/$project" || echo inbox )
-      if grep -qxF "$fo" "$DIR/skip-folders"; then printf 'skip\tnot chosen\t%s\n' "$f" >> "$plan"; continue; fi
+      if grep -qxF "$fo" "$SKIPF"; then printf 'skip\tnot chosen\t%s\n' "$f" >> "$plan"; continue; fi
     fi
     s=$(sha "$f" 2>/dev/null)
     [ -n "$s" ] || { printf 'skip\tunreadable\t%s\n' "$f" >> "$plan"; continue; }
@@ -255,7 +264,7 @@ lock() {
 }
 
 case "$CMD" in
-  link) link "${2:-}" ;;
+  link) lock; link "${2:-}" ;;
   exclude)
     if [ -n "${2:-}" ]; then
       x=$(cd "$2" 2>/dev/null && pwd -P) || die "No such folder: $2"
@@ -266,31 +275,33 @@ case "$CMD" in
   scan) lock; sync_ dry ;;
   run) lock; sync_ send ;;
   hook)
-    [ -n "$TOKEN" ] && [ "$(conf enabled)" != off ] || exit 0
+    [ -n "$TOKEN" ] && [ "$(conf enabled)" != off ] && [ "$(conf mode)" != connect ] || exit 0
     if command -v setsid >/dev/null 2>&1; then setsid sh "$0" hook-run >/dev/null 2>&1 </dev/null &
     else nohup sh "$0" hook-run >/dev/null 2>&1 </dev/null & fi
     exit 0 ;;
   hook-run) lock; sync_ send >/dev/null 2>&1; exit 0 ;;
-  off|on) [ -f "$CONF" ] || die "Not linked."; sed -i.bak '/^enabled=/d' "$CONF" && rm -f "$CONF.bak"; echo "enabled=$CMD" >> "$CONF"
+  off|on) [ -f "$CONF" ] || die "Not linked."
+          [ "$CMD" = off ] || [ "$(conf mode)" != connect ] || die "This computer is connected without syncing. To sync, connect again: sync.sh link"
+          sed -i.bak '/^enabled=/d' "$CONF" && rm -f "$CONF.bak"; echo "enabled=$CMD" >> "$CONF"
           say "Automatic sync is $CMD." ;;
   status)
-    if [ -z "$TOKEN" ] && [ -n "$SERVER" ]; then say "Connected to $SERVER without syncing."
+    if [ "$(conf mode)" = connect ]; then say "Connected to $SERVER without syncing."
     elif [ -z "$TOKEN" ]; then say "Not linked."; else
       say "Linked to $SERVER as $(conf home) ($(conf computer)). Automatic sync: $(conf enabled)."
       [ -f "$STATE/last-run" ] && say "Last complete run: $(date -r "$STATE/last-run" 2>/dev/null || ls -l "$STATE/last-run")"
       say "Files copied so far: $(wc -l < "$STATE/sent.tsv" 2>/dev/null | tr -d ' ' || echo 0)"
     fi ;;
   unlink)
+    m=$(conf mode); what="sync"; [ "$m" = connect ] && what="connection"
     if [ -n "$TOKEN" ] && [ -n "$SERVER" ]; then
       printf 'authorization: Bearer %s\n' "$TOKEN" > "$STATE/auth"
       if resp=$(curl_ -fsS -X POST -H @"$STATE/auth" "$SERVER/api/sync/unlink" 2>/dev/null); then ended=1; else ended=; fi
       rm -f "$STATE/auth"
     fi
-    rm -f "$CONF" "$DIR/skip-folders"; rm -rf "$STATE"
+    rm -f "$CONF" "$SKIPF"; rm -rf "$STATE"
     if [ -n "${ended:-}" ]; then
-      case "$resp" in *'"signed_out":true'*) say "Disconnected: this computer's sync and its Claude Code sign-in are turned off on the server." ;;
-        *) say "Disconnected: this computer's sync is turned off on the server." ;; esac
-    elif [ -n "$SERVER" ] && [ -z "$TOKEN" ]; then say "Forgot the connection here. Its sign-in is listed under Connect Claude Code on the server if you want to turn it off there too."
+      case "$resp" in *'"signed_out":true'*) say "Disconnected: this computer's $what and its Claude Code sign-in are turned off on the server." ;;
+        *) say "Disconnected: this computer's $what is turned off on the server." ;; esac
     else say "Forgot the link here. (If the server couldn't be reached, turn this computer off on the Connect page.)"; fi ;;
   *) die "Unknown command: $CMD (link, scan, run, exclude, off, on, status, unlink)" ;;
 esac

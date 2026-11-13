@@ -34,7 +34,7 @@ $Utf8 = New-Object System.Text.UTF8Encoding $false
 if ($Cmd -ne 'hook') { New-Item -ItemType Directory -Force -Path $State | Out-Null }
 
 function Say([string]$m) { if (-not $Quiet) { Write-Host "  $m" } }
-function Die([string]$m) { if ($Quiet) { exit 0 }; Write-Host ''; Write-Host "  $m" -ForegroundColor Yellow; Write-Host ''; exit 1 }
+function Die([string]$m) { if ($script:HaveLock) { Remove-Item -LiteralPath (Join-Path $Dir 'lock') -Force -Recurse -ErrorAction SilentlyContinue }; if ($Quiet) { exit 0 }; Write-Host ''; Write-Host "  $m" -ForegroundColor Yellow; Write-Host ''; exit 1 }
 function B64([string]$s) { [Convert]::ToBase64String($Utf8.GetBytes($s)) }
 function Human([double]$b) {
   $u = 'B', 'KB', 'MB', 'GB'; $i = 0
@@ -50,7 +50,7 @@ function Read-Conf {
   $c
 }
 function Write-Conf($c) {
-  $lines = foreach ($k in 'server', 'token', 'computer', 'home', 'max', 'enabled', 'ca') { if ($c[$k]) { "$k=$($c[$k])" } }
+  $lines = foreach ($k in 'server', 'token', 'computer', 'home', 'max', 'enabled', 'mode', 'ca') { if ($c[$k]) { "$k=$($c[$k])" } }
   [IO.File]::WriteAllLines($Conf, [string[]]$lines, $Utf8)
 }
 $C = Read-Conf
@@ -204,10 +204,17 @@ function Link([string]$srv) {
   $name = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { 'This computer' }
   # Look first, so the browser can show which folders would be copied and the person can pick.
   Say 'Looking for files Claude has already made here (the first time can take a minute)...'
-  Remove-Item -LiteralPath $SkipFile, (Join-Path $State 'sent.tsv'), (Join-Path $State 'last-run'), (Join-Path $State 'next-run') -Force -ErrorAction SilentlyContinue
-  $script:SkipFolders = @()
-  $q = $script:Quiet; $script:Quiet = $true
-  try { Sync-Files 'dry' } finally { $script:Quiet = $q }
+  # A full look, in its own scratch folder: the current link, what was sent and what's skipped stay as they
+  # are until the person actually connects in the browser.
+  $keepState = $script:State; $keepSkip = $script:SkipFolders; $q = $script:Quiet
+  $script:State = Join-Path $Dir 'link-scan'
+  Remove-Item -LiteralPath $script:State -Recurse -Force -ErrorAction SilentlyContinue
+  New-Item -ItemType Directory -Force -Path $script:State | Out-Null
+  $script:SkipFolders = @(); $script:Quiet = $true
+  try { Sync-Files 'dry' } finally {
+    Remove-Item -LiteralPath $script:State -Recurse -Force -ErrorAction SilentlyContinue
+    $script:State = $keepState; $script:SkipFolders = $keepSkip; $script:Quiet = $q
+  }
   $folders = @($script:LastSend | Group-Object { if ($_.Where -eq 'projects') { "projects/$($_.Project)" } else { 'inbox' } } |
     Select-Object -First 200 | ForEach-Object {
       $g = $_.Group
@@ -231,20 +238,19 @@ function Link([string]$srv) {
         -Body (@{ poll = $s.poll } | ConvertTo-Json) -UseBasicParsing
     } catch { continue }
     switch ($r.status) {
-      'approved' {
+      { $_ -in 'approved', 'connected' } {
         $max = if ($r.max_file_bytes) { $r.max_file_bytes } else { 524288000 }
+        # A new link starts afresh: everything it is allowed to copy is copied again (the server skips files
+        # it already has).
+        Remove-Item -LiteralPath (Join-Path $State 'sent.tsv'), (Join-Path $State 'last-run'), (Join-Path $State 'next-run') -Force -ErrorAction SilentlyContinue
         $skip = @($r.skip | Where-Object { $_ })
-        if ($skip.Count) { [IO.File]::WriteAllLines($SkipFile, [string[]]$skip, $Utf8) }
-        $script:C = @{ server = $srv; token = $r.token; computer = $name; home = $r.home; max = "$max"; enabled = 'on'; ca = $C['ca'] }
+        [IO.File]::WriteAllLines($SkipFile, [string[]]$skip, $Utf8)
+        $sync = $r.status -eq 'approved'
+        $script:C = @{ server = $srv; token = $r.token; computer = $name; home = $r.home; max = "$max"
+                       enabled = $(if ($sync) { 'on' } else { 'off' }); mode = $(if ($sync) { 'sync' } else { 'connect' }); ca = $C['ca'] }
         Write-Conf $script:C
-        Write-Host "  Connected. Files Claude makes on this computer go to $($r.home)"
-        Write-Host ''
-        return
-      }
-      'connected' {
-        $script:C = @{ server = $srv; computer = $name; home = $r.home; enabled = 'off'; ca = $C['ca'] }
-        Write-Conf $script:C
-        Write-Host '  Connected, without syncing. Nothing will be copied from this computer.'
+        if ($sync) { Write-Host "  Connected. Files Claude makes on this computer go to $($r.home)" }
+        else { Write-Host '  Connected, without syncing. Nothing will be copied from this computer.' }
         Write-Host ''
         return
       }
@@ -369,6 +375,7 @@ function Plan-Files($cands, [long]$max) {
 # ---- scan and run --------------------------------------------------------------------------
 function Sync-Files([string]$mode) {
   if ($mode -ne 'dry' -and -not $C['token']) { Die "This computer isn't linked yet. Run: sync.ps1 link <server>" }
+  if ($mode -ne 'dry' -and $C['mode'] -eq 'connect') { Die 'This computer is connected without syncing. To sync, connect again: sync.ps1 link' }
   if ($mode -eq 'dry') { Load-Helper } else { Use-Network }
   $script:HasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
   $max = if ($C['max']) { [long]$C['max'] } else { 524288000 }
@@ -446,22 +453,22 @@ function Sync-Files([string]$mode) {
 # ---- one run at a time ---------------------------------------------------------------------
 $Lock = Join-Path $Dir 'lock'
 function Take-Lock {
-  try { New-Item -ItemType Directory -Path $Lock -ErrorAction Stop | Out-Null; return }
+  try { New-Item -ItemType Directory -Path $Lock -ErrorAction Stop | Out-Null; $script:HaveLock = $true; return }
   catch {
     # A run that died more than 30 minutes ago leaves its lock behind.
     $l = Get-Item -LiteralPath $Lock -ErrorAction SilentlyContinue
     if ($l -and $l.LastWriteTime -lt (Get-Date).AddMinutes(-30)) {
       Remove-Item -LiteralPath $Lock -Force -Recurse -ErrorAction SilentlyContinue
-      try { New-Item -ItemType Directory -Path $Lock -ErrorAction Stop | Out-Null; return } catch { }
+      try { New-Item -ItemType Directory -Path $Lock -ErrorAction Stop | Out-Null; $script:HaveLock = $true; return } catch { }
     }
     if ($Quiet) { exit 0 }
     Die 'Another sync is running.'
   }
 }
-function Drop-Lock { Remove-Item -LiteralPath $Lock -Force -Recurse -ErrorAction SilentlyContinue }
+function Drop-Lock { Remove-Item -LiteralPath $Lock -Force -Recurse -ErrorAction SilentlyContinue; $script:HaveLock = $false }
 
 switch ($Cmd) {
-  'link' { Link $Arg }
+  'link' { Take-Lock; try { Link $Arg } finally { Drop-Lock } }
   'exclude' {
     if ($Arg) {
       $x = try { (Resolve-Path -LiteralPath $Arg -ErrorAction Stop).ProviderPath.TrimEnd('\') } catch { Die "No such folder: $Arg" }
@@ -474,7 +481,7 @@ switch ($Cmd) {
   'scan' { Take-Lock; try { Sync-Files 'dry' } finally { Drop-Lock } }
   'run' { Take-Lock; try { Sync-Files 'send' } finally { Drop-Lock } }
   'hook' {
-    if (-not $C['token'] -or $C['enabled'] -eq 'off') { exit 0 }
+    if (-not $C['token'] -or $C['enabled'] -eq 'off' -or $C['mode'] -eq 'connect') { exit 0 }
     $ps = Join-Path $PSHOME 'powershell.exe'; if (-not (Test-Path -LiteralPath $ps)) { $ps = 'powershell.exe' }
     try {
       Start-Process -FilePath $ps -WindowStyle Hidden -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
@@ -483,17 +490,18 @@ switch ($Cmd) {
     exit 0
   }
   'hook-run' {
-    if (-not $C['token'] -or $C['enabled'] -eq 'off') { exit 0 }
+    if (-not $C['token'] -or $C['enabled'] -eq 'off' -or $C['mode'] -eq 'connect') { exit 0 }
     Take-Lock
     try { Sync-Files 'send' *> $null } catch { } finally { Drop-Lock }
     exit 0
   }
   { $_ -in 'off', 'on' } {
     if (-not $C['token']) { Die 'Not linked.' }
+    if ($Cmd -eq 'on' -and $C['mode'] -eq 'connect') { Die 'This computer is connected without syncing. To sync, connect again: sync.ps1 link' }
     $C['enabled'] = $Cmd; Write-Conf $C; Say "Automatic sync is $Cmd."
   }
   'status' {
-    if (-not $C['token'] -and $C['server']) { Say "Connected to $($C['server']) without syncing." }
+    if ($C['mode'] -eq 'connect') { Say "Connected to $($C['server']) without syncing." }
     elseif (-not $C['token']) { Say 'Not linked.' } else {
       Say "Linked to $($C['server']) as $($C['home']) ($($C['computer'])). Automatic sync: $($C['enabled'])."
       $m = Join-Path $State 'last-run'
@@ -515,9 +523,9 @@ switch ($Cmd) {
     }
     Remove-Item -LiteralPath $Conf, $SkipFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $State -Force -Recurse -ErrorAction SilentlyContinue
-    if ($ended -and $u.signed_out) { Say "Disconnected: this computer's sync and its Claude Code sign-in are turned off on the server." }
-    elseif ($ended) { Say "Disconnected: this computer's sync is turned off on the server." }
-    elseif ($C['server'] -and -not $C['token']) { Say 'Forgot the connection here. Its sign-in is listed under Connect Claude Code on the server if you want to turn it off there too.' }
+    $what = if ($C['mode'] -eq 'connect') { 'connection' } else { 'sync' }
+    if ($ended -and $u.signed_out) { Say "Disconnected: this computer's $what and its Claude Code sign-in are turned off on the server." }
+    elseif ($ended) { Say "Disconnected: this computer's $what is turned off on the server." }
     else { Say "Forgot the link here. (If the server couldn't be reached, turn this computer off on the Connect page.)" }
   }
   default { Die "Unknown command: $Cmd (link, scan, run, exclude, off, on, status, unlink)" }

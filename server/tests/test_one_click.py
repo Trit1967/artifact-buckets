@@ -53,24 +53,62 @@ def test_keep_all_when_no_choice_sent(app, admin):
     assert p["status"] == "approved" and p["skip"] == []
 
 
-def test_connect_without_syncing_issues_no_sync_token(app, admin):
+def test_connect_without_syncing_gets_a_key_that_cannot_upload(app, admin):
     c, s = _start(app)
     r = admin.post(f"/api/sync/link/{s['code']}/connect")
     assert r.json() == {"status": "approved", "computer": "WORK-LAPTOP", "sync": False}
     p = c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()
-    assert p["status"] == "connected" and "token" not in p and p["home"] == "/users/admin"
+    assert p["status"] == "connected" and p["token"].startswith("ab_sync_") and p["home"] == "/users/admin"
     assert c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()["status"] == "done"
+    # Not shown as a computer that syncs, and it can't add files.
     assert not [t for t in admin.get("/api/tokens").json()["tokens"] if t["kind"] == "sync"]
+    assert admin.get("/api/sync/status").json()["computers"] == []
+    h = {"authorization": f"Bearer {p['token']}", "x-sync-where": "inbox", "x-sync-path": "YS50eHQ="}
+    assert c.put("/api/sync/file", content=b"x", headers=h).status_code == 403
 
 
-def test_bad_folder_entries_are_dropped(app, admin):
+def test_odd_folders_are_hidden_and_never_copied(app, admin):
     junk = [{"folder": "../etc", "files": 1}, {"folder": "projects/a/b", "files": 1}, {"folder": "projects/..", "files": 1},
             {"folder": "users/x", "files": 1}, {"folder": "projects/ok", "files": -5, "bytes": -1, "source": "a\u202eb\x07c"},
-            {"folder": "projects/ok", "files": 9}] + [{"folder": f"projects/p{i}", "files": 1} for i in range(300)]
-    _, s = _start(app, folders=junk)
-    got = admin.get(f"/api/sync/link/{s['code']}").json()["folders"]
-    assert got[0] == {"folder": "projects/ok", "files": 0, "bytes": 0, "source": "abc"}
-    assert len(got) <= 200 and all(f["folder"].startswith("projects/p") for f in got[1:])
+            {"folder": "projects/ok", "files": 9}, {"folder": "projects/" + "n" * 300, "files": 1},
+            {"folder": "projects/r\u202egnp.exe", "files": 1}] + [{"folder": f"projects/p{i}", "files": 1} for i in range(300)]
+    c, s = _start(app, folders=junk)
+    info = admin.get(f"/api/sync/link/{s['code']}").json()
+    got = info["folders"]
+    assert got[0] == {"folder": "projects/ok", "label": "ok", "files": 0, "bytes": 0, "source": "abc"}
+    assert got[1]["label"] == "rgnp.exe"   # direction tricks removed from what people see
+    assert len(got) == 200 and info["hidden"] > 100
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    p = c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()
+    # Everything the page couldn't show is on the skip list, so it's never copied.
+    assert "projects/a/b" in p["skip"] and "projects/" + "n" * 300 in p["skip"] and "projects/p250" in p["skip"]
+    assert "projects/ok" not in p["skip"]
+    import base64
+    assert [base64.b64decode(x).decode() for x in p["skip_b64"].split(",")] == p["skip"]
+
+
+def test_start_payload_is_bounded(app):
+    c = TestClient(app)
+    many = [{"folder": f"projects/p{i}", "files": 1} for i in range(2001)]
+    assert c.post("/api/sync/link/start", json={"computer": "X", "folders": many}).status_code == 422
+    assert c.post("/api/sync/link/start", json={"computer": "X" * 300}).status_code == 422
+
+
+def test_link_start_survives_old_links_being_cleaned_up(app, admin):
+    """SQLite hands out a deleted row's id again; the stale plan must not block new links."""
+    from app.db import new_session
+    from app.sync import SyncLink
+    for _ in range(2):
+        c, s = _start(app)
+        admin.post(f"/api/sync/link/{s['code']}/allow")
+        c.post("/api/sync/link/poll", json={"poll": s["poll"]})
+        with new_session() as db:
+            for row in db.query(SyncLink).all():
+                row.created_at = row.created_at - dt.timedelta(hours=2)
+            db.commit()
+    c, s = _start(app, folders=[{"folder": "projects/fresh", "files": 1}])
+    info = admin.get(f"/api/sync/link/{s['code']}").json()
+    assert [f["folder"] for f in info["folders"]] == ["projects/fresh"]
 
 
 def test_one_press_covers_claude_code_sign_in(app, admin):
@@ -194,3 +232,81 @@ def test_scripts_served(app):
     info = TestClient(app).get("/api/auth/me")
     # (setup info is part of the signed-in session; checked in the web tests)
     assert info.status_code in (200, 401)
+
+
+def test_shortcut_only_once_even_in_parallel(app, admin):
+    import threading
+    _, s = _start(app)
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    results = []
+    clients = []
+    for _ in range(6):
+        c = TestClient(app, follow_redirects=False)
+        cid = c.post("/oauth/register", json={"client_name": "Claude Code", "redirect_uris": ["http://127.0.0.1:1/cb"]}).json()["client_id"]
+        clients.append(cid)
+    barrier = threading.Barrier(len(clients))
+
+    def go(cid):
+        _, ch = pkce()
+        c = TestClient(app, follow_redirects=False)
+        c.cookies = admin.c.cookies
+        barrier.wait()
+        r = c.get("/oauth/authorize", params={"client_id": cid, "redirect_uri": "http://127.0.0.1:1/cb", "response_type": "code",
+                                              "code_challenge": ch, "code_challenge_method": "S256"})
+        results.append(r.headers.get("location", ""))
+    ts = [threading.Thread(target=go, args=(cid,)) for cid in clients]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    assert sum(1 for loc in results if loc.startswith("http://127.0.0.1:1/cb?code=")) <= 1
+
+
+def test_client_registered_before_the_approval_gets_no_shortcut(app, admin):
+    c = TestClient(app, follow_redirects=False)
+    redirect = "http://127.0.0.1:33418/callback"
+    cid = c.post("/oauth/register", json={"client_name": "x", "redirect_uris": [redirect]}).json()["client_id"]
+    from app.db import OAuthClient, new_session
+    with new_session() as db:
+        db.get(OAuthClient, cid).created_at -= dt.timedelta(minutes=1)
+        db.commit()
+    _, s = _start(app)
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    _, ch = pkce()
+    r = admin.get("/oauth/authorize", params={"client_id": cid, "redirect_uri": redirect, "response_type": "code",
+                                              "code_challenge": ch, "code_challenge_method": "S256"})
+    assert r.headers["location"].startswith("/consent?")
+
+
+def test_relink_keeps_the_sign_in_attached_and_opens_no_window(app, admin):
+    c, s = _start(app)
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    c.post("/api/sync/link/poll", json={"poll": s["poll"]})
+    tc, cid, verifier, q, r = _authorize(app, admin)
+    code = parse_qs(urlparse(r.headers["location"]).query)["code"][0]
+    access = tc.post("/oauth/token", data={"grant_type": "authorization_code", "code": code, "client_id": cid,
+                                           "redirect_uri": q["redirect_uri"], "code_verifier": verifier}).json()["access_token"]
+    # Later: connect again (say to change which folders sync). Claude Code is already signed in.
+    c2, s2 = _start(app)
+    admin.post(f"/api/sync/link/{s2['code']}/connect")
+    p2 = c2.post("/api/sync/link/poll", json={"poll": s2["poll"]}).json()
+    assert _authorize(app, admin)[4].headers["location"].startswith("/consent?")   # no silent pass
+    mcp = {"authorization": f"Bearer {access}", "accept": "application/json, text/event-stream"}
+    ping = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+    assert tc.post("/mcp", json=ping, headers=mcp).status_code == 200
+    assert tc.post("/api/sync/unlink", headers={"authorization": f"Bearer {p2['token']}"}).json()["signed_out"] is True
+    assert tc.post("/mcp", json=ping, headers=mcp).status_code == 401
+
+
+def test_hand_approved_sign_in_after_connecting_is_the_one_removed(app, admin):
+    c, s = _start(app)
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    p = c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()
+    _authorize(app, admin, redirect="http://127.0.0.1:9/stray")   # something else takes the one-click pass
+    tc, cid, verifier, q, r = _authorize(app, admin)
+    assert r.headers["location"].startswith("/consent?")
+    ap = admin.c.post("/oauth/approve", data={**q, "decision": "allow", "csrf": admin.csrf})
+    code = parse_qs(urlparse(ap.headers["location"]).query)["code"][0]
+    access = tc.post("/oauth/token", data={"grant_type": "authorization_code", "code": code, "client_id": cid,
+                                           "redirect_uri": q["redirect_uri"], "code_verifier": verifier}).json()["access_token"]
+    tc.post("/api/sync/unlink", headers={"authorization": f"Bearer {p['token']}"})
+    mcp = {"authorization": f"Bearer {access}", "accept": "application/json, text/event-stream"}
+    assert tc.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, headers=mcp).status_code == 401
