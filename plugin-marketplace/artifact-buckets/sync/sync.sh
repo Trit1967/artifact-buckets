@@ -11,6 +11,7 @@
 #   sync.sh link [server]   link this computer (opens the browser to approve, once)
 #   sync.sh scan            show what would be copied, change nothing
 #   sync.sh run             copy now
+#   sync.sh exclude [dir]   never copy anything under this folder (no folder: list them)
 #   sync.sh off | on        pause or resume automatic syncing (after each Claude Code reply)
 #   sync.sh status          show the link and the last run
 #   sync.sh unlink          forget the link on this computer
@@ -100,10 +101,17 @@ place() {
   cwd=$1; f=$2
   [ -f "$f" ] || { printf 'skip\tgone\n'; return; }
   case "$f" in
-    "$CLAUDE_DIR"/*|"$DIR"/*|*/.buckets/*|/tmp/*|/var/folders/*|/private/var/*) printf 'skip\tsystem\n'; return ;;
+    "$CLAUDE_DIR"/*|"$DIR"/*|*/.buckets/*|/tmp/*|/var/folders/*|/private/var/*|"$HOME"/Library/*) printf 'skip\tsystem\n'; return ;;
     */node_modules/*|*/.git/*|*/dist/*|*/build/*|*/.venv/*|*/venv/*|*/__pycache__/*|*/.next/*|*/target/*|*/.cache/*|*/vendor/*)
       printf 'skip\tbuild\n'; return ;;
+    */.*) printf 'skip\thidden\n'; return ;;   # any hidden folder on the way: ~/.ssh, ~/.aws, .config, ...
   esac
+  if [ -f "$DIR/exclude" ]; then
+    while IFS= read -r x; do
+      x=${x%/}; case "$x" in ""|\#*) continue ;; "~"/*) x=$HOME/${x#"~/"} ;; esac
+      case "$f" in "$x"/*|"$x") printf 'skip\texcluded\n'; return ;; esac
+    done < "$DIR/exclude"
+  fi
   base=${f##*/}
   case "$base" in
     .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.jks|*.keystore|id_rsa*|id_ed25519*|id_ecdsa*|.npmrc|.netrc|.pypirc|*.kdbx|*secret*|*Secret*|*credential*|*Credential*|*.tfstate|*.tfvars)
@@ -112,7 +120,7 @@ place() {
   size=$(wc -c < "$f" | tr -d ' ')
   [ "$size" -gt 0 ] || { printf 'skip\tempty\n'; return; }
   [ "$size" -le "${MAX:-524288000}" ] || { printf 'skip\ttoo big\n'; return; }
-  d=${f%/*}
+  d=${f%/*}; top=""
   if command -v git >/dev/null 2>&1; then
     top=$(git -C "$d" rev-parse --show-toplevel 2>/dev/null || true)
     if [ -n "$top" ]; then
@@ -128,11 +136,15 @@ place() {
       t=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true); [ -n "$t" ] && [ "$t" != "$HOME" ] && root=$t
     fi
   fi
-  case "$f" in
-    "$root"/*) [ -n "$root" ] && rel=${f#"$root"/} && where=projects && project=${root##*/} ;;
-    *) where=inbox; project="-"; rel=$base ;;
-  esac
-  [ -n "$root" ] || { where=inbox; project="-"; rel=$base; }
+  # Made outside the folder Claude Code ran in: file it under its own repository if it has one,
+  # otherwise keep its full path in the inbox so files with the same name don't collide.
+  [ -n "$root" ] && case "$f" in "$root"/*) ;; *) root="" ;; esac
+  [ -n "$root" ] || { [ -n "${top:-}" ] && [ "$top" != "$HOME" ] && root=$top; }
+  if [ -n "$root" ]; then where=projects; project=${root##*/}; rel=${f#"$root"/}
+  else
+    where=inbox; project="-"
+    case "$f" in "$HOME"/*) rel=${f#"$HOME"/} ;; *) rel=${f#/} ;; esac
+  fi
   case "/$rel" in */.*) printf 'skip\thidden\n'; return ;; esac
   printf '%s\t%s\t%s\n' "$where" "$project" "$rel"
 }
@@ -203,6 +215,12 @@ lock() {
 
 case "$CMD" in
   link) link "${2:-}" ;;
+  exclude)
+    if [ -n "${2:-}" ]; then
+      x=$(cd "$2" 2>/dev/null && pwd) || die "No such folder: $2"
+      grep -qxF "$x" "$DIR/exclude" 2>/dev/null || echo "$x" >> "$DIR/exclude"; say "Won't copy anything under $x."
+    elif [ -s "$DIR/exclude" ]; then say "Never copied:"; while IFS= read -r x; do say "  $x"; done < "$DIR/exclude"
+    else say "No folders excluded. Add one with: sync.sh exclude <folder>"; fi ;;
   scan) lock; sync_ dry ;;
   run) lock; sync_ send ;;
   hook)
@@ -220,5 +238,5 @@ case "$CMD" in
       say "Files copied so far: $(wc -l < "$STATE/sent.tsv" 2>/dev/null | tr -d ' ' || echo 0)"
     fi ;;
   unlink) rm -f "$CONF"; rm -rf "$STATE"; say "Forgot the link. (Turn the computer off on the Connect page to end it on the server.)" ;;
-  *) die "Unknown command: $CMD (link, scan, run, off, on, status, unlink)" ;;
+  *) die "Unknown command: $CMD (link, scan, run, exclude, off, on, status, unlink)" ;;
 esac

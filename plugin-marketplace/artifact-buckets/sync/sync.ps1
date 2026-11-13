@@ -10,6 +10,7 @@
 #   sync.ps1 link [server]   link this computer (opens the browser to approve, once)
 #   sync.ps1 scan            show what would be copied, change nothing
 #   sync.ps1 run             copy now
+#   sync.ps1 exclude [dir]   never copy anything under this folder (no folder: list them)
 #   sync.ps1 off | on        pause or resume automatic syncing (after each Claude Code reply)
 #   sync.ps1 status          show the link and the last run
 #   sync.ps1 unlink          forget the link on this computer
@@ -233,8 +234,15 @@ function Link([string]$srv) {
 $BuildDirs = @('node_modules', '.git', 'dist', 'build', '.venv', 'venv', '__pycache__', '.next', 'target', '.cache', 'vendor')
 $SecretNames = @('.env', '.env.*', '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore', 'id_rsa*', 'id_ed25519*',
   'id_ecdsa*', '.npmrc', '.netrc', '.pypirc', '*.kdbx', '*secret*', '*credential*', '*.tfstate', '*.tfvars')
-$SystemDirs = @($ClaudeDir, $Dir, $env:TEMP, $env:TMP, $env:WINDIR, (Join-Path $HOME 'AppData\Local\Temp')) |
+$SystemDirs = @($ClaudeDir, $Dir, $env:TEMP, $env:TMP, $env:WINDIR, (Join-Path $HOME 'AppData')) |
   Where-Object { $_ } | ForEach-Object { [IO.Path]::GetFullPath($_).TrimEnd('\') + '\' }
+
+$ExcludeFile = Join-Path $Dir 'exclude'
+$Excludes = @()
+if (Test-Path -LiteralPath $ExcludeFile) {
+  $Excludes = @([IO.File]::ReadAllLines($ExcludeFile, $Utf8) | Where-Object { $_.Trim() -and -not $_.StartsWith('#') } |
+    ForEach-Object { $x = $_.Trim().TrimEnd('\'); if ($x.StartsWith('~')) { $x = $HOME + $x.Substring(1) }; $x })
+}
 
 function Under([string]$path, [string]$dir) { $path.StartsWith($dir.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) }
 
@@ -255,6 +263,9 @@ function Pre-Skip([string]$f, [long]$max) {
   $parts = $f.Split('\')
   if ($parts -contains '.buckets') { return 'system' }
   foreach ($p in $parts[0..($parts.Length - 2)]) { if ($BuildDirs -contains $p) { return 'build' } }
+  # Any hidden folder on the way (~\.ssh, ~\.aws, .config, ...) or a hidden file.
+  foreach ($p in $parts[1..($parts.Length - 1)]) { if ($p.StartsWith('.')) { return 'hidden' } }
+  foreach ($x in $Excludes) { if ($f.Equals($x, [StringComparison]::OrdinalIgnoreCase) -or (Under $f $x)) { return 'excluded' } }
   $base = $parts[-1]
   foreach ($n in $SecretNames) { if ($base -like $n) { return 'secret' } }
   $len = (New-Object IO.FileInfo $f).Length
@@ -306,10 +317,19 @@ function Plan-Files($cands, [long]$max) {
       $t = Git-Top $cwd
       if ($t -and $t -ne $home_) { $root = $t }
     }
-    if ($root -and (Under $it.File $root)) {
+    # Made outside the folder Claude Code ran in: file it under its own repository if it has one,
+    # otherwise keep its full path in the inbox so files with the same name don't collide.
+    if ($root -and -not (Under $it.File $root)) { $root = '' }
+    if (-not $root) {
+      $t = Git-Top ([IO.Path]::GetDirectoryName($it.File))
+      if ($t -and $t -ne $home_) { $root = $t }
+    }
+    if ($root) {
       $it.Where = 'projects'; $it.Project = Split-Path -Leaf $root; $it.Rel = $it.File.Substring($root.Length + 1).Replace('\', '/')
     } else {
-      $it.Where = 'inbox'; $it.Project = ''; $it.Rel = Split-Path -Leaf $it.File
+      $it.Where = 'inbox'; $it.Project = ''
+      $r = if (Under $it.File $home_) { $it.File.Substring($home_.Length + 1) } else { $it.File -replace '^[A-Za-z]:\\', '' -replace '^\\\\[^\\]+\\[^\\]+\\', '' }
+      $it.Rel = $r.Replace('\', '/')
     }
     if (('/' + $it.Rel) -match '/\.') { $it.Skip = 'hidden' }
   }
@@ -406,6 +426,14 @@ function Drop-Lock { Remove-Item -LiteralPath $Lock -Force -Recurse -ErrorAction
 
 switch ($Cmd) {
   'link' { Link $Arg }
+  'exclude' {
+    if ($Arg) {
+      $x = try { (Resolve-Path -LiteralPath $Arg -ErrorAction Stop).ProviderPath.TrimEnd('\') } catch { Die "No such folder: $Arg" }
+      if (-not ($Excludes -contains $x)) { [IO.File]::AppendAllText($ExcludeFile, "$x`r`n", $Utf8) }
+      Say "Won't copy anything under $x."
+    } elseif ($Excludes.Count) { Say 'Never copied:'; foreach ($x in $Excludes) { Say "  $x" } }
+    else { Say 'No folders excluded. Add one with: sync.ps1 exclude <folder>' }
+  }
   'scan' { Take-Lock; try { Sync-Files 'dry' } finally { Drop-Lock } }
   'run' { Take-Lock; try { Sync-Files 'send' } finally { Drop-Lock } }
   'hook' {
@@ -442,5 +470,5 @@ switch ($Cmd) {
     Remove-Item -LiteralPath $State -Force -Recurse -ErrorAction SilentlyContinue
     Say 'Forgot the link. (Turn the computer off on the Connect page to end it on the server.)'
   }
-  default { Die "Unknown command: $Cmd (link, scan, run, off, on, status, unlink)" }
+  default { Die "Unknown command: $Cmd (link, scan, run, exclude, off, on, status, unlink)" }
 }

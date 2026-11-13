@@ -234,7 +234,7 @@ Claude Code keeps a history of the files it created and edited on this computer.
 history and copies those files to the person's own Artifact Buckets folders: a project's files go under
 `projects/<project folder name>/`, anything else under `inbox/`. It leaves out files kept in git (tracked or
 ignored), secrets (`.env`, keys, certificates, anything named secret or credential), build and dependency
-folders, hidden files, and anything under `.claude`. It only ever adds files to the person's own `projects` and
+folders, anything in a hidden folder (such as `~/.ssh`), app data, and anything under `.claude`. It only ever adds files to the person's own `projects` and
 `inbox` folders; it can't read, change or delete anything on the server.
 
 1. Save the script to `~/.artifact-buckets/` (on Windows `%USERPROFILE%\\.artifact-buckets\\`):
@@ -244,7 +244,9 @@ folders, hidden files, and anything under `.claude`. It only ever adds files to 
    macOS and Linux: `sh ~/.artifact-buckets/sync.sh scan`.
    The first scan reads all of Claude Code's history and can take a minute.
 3. Show the person the summary (folders, counts, sizes, and what's left out) and ask whether to copy them and
-   keep new files in sync from now on. If they say no, stop here: nothing has been sent.
+   keep new files in sync from now on. Ask too whether any folder should never be copied, such as a
+   client's or another employer's work; for each, run the script with `exclude <folder>` and scan again.
+   If they say no to copying, stop here: nothing has been sent.
 4. If yes, run the script with `link {base}`. It prints a code and opens the browser at a page that asks the
    person to allow this computer; the codes must match. The command waits until they press **Allow**.
 5. Then run it with `run`. From now on the plugin's hook copies new and changed files after each reply.
