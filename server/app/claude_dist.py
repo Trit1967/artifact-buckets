@@ -188,9 +188,17 @@ to repeat. The person makes one choice, on one page in their browser; don't ask 
 that the page already asks. If they told you up front to keep some folders out (a client's work, say), remind
 them to untick those on that page.
 
-The same steps are in a script, for anyone who'd rather paste one line: Windows PowerShell
-`irm {b}/claude/install.ps1 | iex`, or macOS and Linux `curl -fsSL {b}/claude/install.sh | sh`.
-To remove everything later, see the last section.
+**Use the setup script.** It does every step below, checks each one, and asks nothing in the terminal; it's
+short, so read it before running it. Save it to `~/.artifact-buckets/` and run it with a ten-minute timeout
+(the person presses Connect in the browser while it waits):
+
+- Windows: download {b}/claude/install.ps1, then
+  `powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\.artifact-buckets\install.ps1"`
+- macOS and Linux: download {b}/claude/install.sh, then `sh ~/.artifact-buckets/install.sh`
+
+Then confirm `claude mcp list` shows `plugin:{PLUGIN}:{SERVER}` as Connected, and tell the person what happened
+(the script prints it). Only if the script can't run here (for example, scripts are blocked), do the numbered
+steps below by hand; they are exactly what the script does. To remove everything later, see the last section.
 """]
     n = 1
     if c:
@@ -268,8 +276,13 @@ window (or `/reload-plugins` in this one) picks up the plugin. Something to try:
 
 ## Removing Artifact Buckets from this computer
 
-Only when the person asks. Files already on the server stay there. The script
-`irm {b}/claude/uninstall.ps1 | iex` (Windows) or `curl -fsSL {b}/claude/uninstall.sh | sh` does all of this:
+Only when the person asks. Files already on the server stay there.
+
+**Use the removal script**, the same way as setup: download {b}/claude/uninstall.ps1 (Windows, run with
+`powershell -NoProfile -ExecutionPolicy Bypass -File <path>`) or {b}/claude/uninstall.sh (`sh <path>`), read it,
+and run it. Save it outside `~/.artifact-buckets`, which it deletes. Then check: `claude plugin list` no longer
+shows `{PLUGIN}`, `~/.artifact-buckets` is gone, and `NODE_EXTRA_CA_CERTS` no longer points into it. Tell the
+person to close open Claude Code windows. Only if the script can't run, do these steps by hand:
 
 1. If `~/.artifact-buckets/sync.ps1` or `sync.sh` exists, run it with `unlink`. That ends this computer's sync
    and its Claude Code sign-in on the server.
