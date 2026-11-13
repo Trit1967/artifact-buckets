@@ -1,5 +1,5 @@
-# Lab: https (Claude Code only signs in over https) on a bare IP address, with a self-signed server
-# certificate made by vm-setup.sh. It is not a CA and names only the lab address, so a computer that trusts
+# Lab: https (Claude Code only signs in over https) on the lab host's name and IP, with a self-signed server
+# certificate made by vm-setup.sh. It is not a CA and names only the lab host, so a computer that trusts
 # it trusts this server and nothing else. Plain http is kept only to hand out the Claude Code setup files.
 {
 	admin off
@@ -7,7 +7,7 @@
 	default_sni {$LAB_IP}
 }
 
-https://{$LAB_IP} {
+{$LAB_SITES} {
 	tls /certs/lab.crt /certs/lab.key
 	encode zstd gzip
 	request_body {
@@ -23,7 +23,7 @@ http:// {
 		reverse_proxy app:8080
 	}
 	handle {
-		redir https://{$LAB_IP}:8443{uri} 308
+		redir https://{$LAB_HOST}:8443{uri} 308
 	}
 	header -Server
 }

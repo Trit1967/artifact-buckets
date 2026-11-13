@@ -185,12 +185,12 @@ Windows PowerShell `irm {b}/claude/install.ps1 | iex`, or macOS and Linux `curl 
         out.append(f"""## {n}. Trust this server's certificate
 
 This lab server uses its own certificate. It is a self-signed server certificate, not a certificate authority:
-its Basic Constraints say CA:FALSE and its only name is `{host}`, so trusting it lets it vouch for this one
-server and nothing else. Check that before trusting it:
+its Basic Constraints say CA:FALSE and it names only this server (`{host}`, and its IP address), so trusting it
+lets it vouch for this one server and nothing else. Check that before trusting it:
 
 - Download {b}/claude/ca.crt to `~/.artifact-buckets/server.crt` (on Windows `%USERPROFILE%\\.artifact-buckets\\server.crt`).
 - Its SHA-256 fingerprint (of the DER bytes) must be `{c[1]}`.
-- It must not be a CA, and its subject alternative name must be only `{host}`. On Windows:
+- It must not be a CA, and its subject alternative names must be only `{host}` and this server's IP address. On Windows:
   `$c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 <path>; $c.Extensions | % {{ $_.Format($false) }}`;
   elsewhere `openssl x509 -in <path> -noout -text`.
 - If any check fails, stop and tell the person. Change nothing.

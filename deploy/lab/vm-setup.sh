@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Inside the VM, as root, from the unpacked Artifact Buckets folder:  sudo ./deploy/lab/vm-setup.sh <lab host IP>
-#   e.g. sudo ./deploy/lab/vm-setup.sh 192.168.1.143
-# People use https://<lab host IP>:8443 (Caddy's own lab certificate; Claude Code signs in only over https).
-# http://<lab host IP>:8090 only hands out the one-line Claude Code installer and the lab certificate,
+# Inside the VM, as root, from the unpacked Artifact Buckets folder:  sudo ./deploy/lab/vm-setup.sh <lab host name or IP> [IP]
+#   e.g. sudo ./deploy/lab/vm-setup.sh mendoza.attlocal.net        (or 192.168.1.143)
+# People use https://<name>:8443 (a self-signed server certificate for that name and IP; Claude Code signs in
+# only over https). http://<name>:8090 only hands out the Claude Code setup files and the certificate,
 # and sends everything else to https. Safe to run again: it updates an existing install in place.
 # Makes a small ZFS pool on a sparse file (10 GB, takes space only as files arrive), puts the folder tree on it,
 # starts the ZFS helper (automatic restore points) and the app.
 set -euo pipefail
-IP=${1:?give the lab host IP people reach, e.g. 192.168.1.143}
-IP=${IP#http://}; IP=${IP#https://}; IP=${IP%%[:/]*}
-URL=https://$IP:8443
+HOST=${1:?give the lab host name or IP people reach, e.g. mendoza.attlocal.net}
+HOST=${HOST#http://}; HOST=${HOST#https://}; HOST=${HOST%%[:/]*}
+if [[ $HOST =~ ^[0-9.]+$ ]]; then IP=$HOST; else IP=${2:-$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')}; fi
+[[ $IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Couldn't find the IP address of $HOST; give it as a second argument"; exit 1; }
+URL=https://$HOST:8443
+if [ "$HOST" = "$IP" ]; then SAN="IP:$IP"; SITES="https://$IP"; else SAN="DNS:$HOST,IP:$IP"; SITES="https://$HOST, https://$IP"; fi
 HERE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$HERE"
 until [ -e /var/lib/cloud/instance/buckets-ready ]; do echo "waiting for first-boot setup"; sleep 5; done
@@ -56,7 +59,7 @@ systemctl enable --now buckets-pool.service bucketsd.service
 mkdir -p /srv/buckets/volumes
 if [ ! -f .env ]; then
   cat > .env <<ENV
-AB_HOSTNAME=$IP
+AB_HOSTNAME=$HOST
 AB_TLS_MODE=internal
 AB_SECRET_KEY=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
@@ -71,15 +74,17 @@ ENV
   chmod 600 .env
 fi
 # Addresses (also updates an install made before the lab moved to https).
-sed -i '/^LAB_IP=/d; /^AB_PUBLIC_URL=/d; /^AB_INSTALL_URL=/d' .env
-printf 'LAB_IP=%s\nAB_PUBLIC_URL=%s\nAB_INSTALL_URL=http://%s:8090\n' "$IP" "$URL" "$IP" >> .env
+sed -i '/^LAB_IP=/d; /^LAB_HOST=/d; /^LAB_SITES=/d; /^AB_PUBLIC_URL=/d; /^AB_INSTALL_URL=/d; /^AB_HOSTNAME=/d' .env
+printf 'AB_HOSTNAME=%s\nLAB_HOST=%s\nLAB_IP=%s\nLAB_SITES=%s\nAB_PUBLIC_URL=%s\nAB_INSTALL_URL=http://%s:8090\n' \
+  "$HOST" "$HOST" "$IP" "$SITES" "$URL" "$HOST" >> .env
 # Server certificate: self-signed, not a CA (CA:FALSE), valid only for the lab address. Trusting it on a PC
 # lets it vouch for this server and nothing else. Made again if the address changes.
 mkdir -p /srv/buckets/tls
-if ! openssl x509 -in /srv/buckets/tls/lab.crt -noout -ext subjectAltName 2>/dev/null | grep -qx "    IP Address:$IP"; then
+want=$(echo "$SAN" | sed 's/DNS:/DNS:/; s/IP:/IP Address:/; s/,/, /')
+if [ "$(openssl x509 -in /srv/buckets/tls/lab.crt -noout -ext subjectAltName 2>/dev/null | sed -n 2p | sed 's/^ *//')" != "$want" ]; then
   openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 \
-    -keyout /srv/buckets/tls/lab.key -out /srv/buckets/tls/lab.crt -subj "/CN=Artifact Buckets lab ($IP)" \
-    -addext "subjectAltName=IP:$IP" -addext "basicConstraints=critical,CA:FALSE" \
+    -keyout /srv/buckets/tls/lab.key -out /srv/buckets/tls/lab.crt -subj "/CN=Artifact Buckets lab ($HOST)" \
+    -addext "subjectAltName=$SAN" -addext "basicConstraints=critical,CA:FALSE" \
     -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=serverAuth"
   chmod 600 /srv/buckets/tls/lab.key
 fi

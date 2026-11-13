@@ -6,6 +6,8 @@ services:
     ports: !override ["80:80", "443:443"]
     environment:
       LAB_IP: ${LAB_IP}
+      LAB_HOST: ${LAB_HOST}
+      LAB_SITES: ${LAB_SITES}
     volumes: !override
       - ./deploy/lab/Caddyfile.lab:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

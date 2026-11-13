@@ -20,7 +20,7 @@ mkdir -p ~/artifact-buckets && tar -xzf ab-lab.tar.gz -C ~/artifact-buckets && c
 ./deploy/lab/vm-create.sh ~/.ssh/id_ed25519.pub          # prints the VM's address
 VM=192.168.122.xx
 scp ab-lab.tar.gz ubuntu@$VM:
-ssh ubuntu@$VM 'mkdir -p ab && tar -xzf ab-lab.tar.gz -C ab && cd ab && sudo ./deploy/lab/vm-setup.sh <lab host IP>'
+ssh ubuntu@$VM 'mkdir -p ab && tar -xzf ab-lab.tar.gz -C ab && cd ab && sudo ./deploy/lab/vm-setup.sh <lab host name, e.g. mendoza.attlocal.net>'
 # Publish the port through Docker (as other lab apps do) so the host firewall lets the LAN in.
 docker run -d --name artifact-buckets-forward --restart unless-stopped -p 8090:8090 \
   alpine/socat tcp-listen:8090,fork,reuseaddr tcp:$VM:80
@@ -28,13 +28,13 @@ docker run -d --name artifact-buckets-forward-https --restart unless-stopped -p 
   alpine/socat tcp-listen:8443,fork,reuseaddr tcp:$VM:443
 ```
 
-Connect Claude Code on a Windows PC (PowerShell): `irm http://<lab host IP>:8090/claude/install.ps1 | iex`.
+Connect Claude Code on a Windows PC (PowerShell): `irm http://<lab host name>:8090/claude/install.ps1 | iex`, or ask Claude Code: "Set up Artifact Buckets on this computer by following http://<lab host name>:8090/claude/setup.md".
 It asks Windows to trust the lab certificate once (choose Yes), installs the plugin and opens the browser to sign in.
 
 ## Update an existing VM
 
 ```bash
-ssh ubuntu@$VM 'cd ab && git pull && sudo ./deploy/lab/vm-setup.sh <lab host IP>'
+ssh ubuntu@$VM 'cd ab && git pull && sudo ./deploy/lab/vm-setup.sh <lab host name, e.g. mendoza.attlocal.net>'
 ```
 (or copy a new tarball over the folder first). The script keeps the existing secrets and data.
 
