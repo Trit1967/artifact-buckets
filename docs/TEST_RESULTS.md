@@ -8,7 +8,7 @@ There were three layers, and two of them were written by an independent tester w
 
 | Layer | Written by | What it covers | Where |
 |---|---|---|---|
-| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (68 tests) |
+| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (72 tests) |
 | Backend QA suite | Independent tester | Every feature line A–I and K in FEATURES.md, through the HTTP API and MCP, including hostile input | `qa/` (210 tests), report `qa/QA_REPORT.md` |
 | UI, plugin and deployment QA | Independent tester | Every page at 1440, 900 and 390 px, for each role; consent and OAuth journeys in a real browser; the Claude Code plugin installed into a real Claude Code; Docker and README steps | `qa-ui/` (Playwright journeys and scripts), report `qa-ui/QA_UI_REPORT.md` |
 | Re-test | Independent tester (fresh run) | Each fixed UI finding re-checked against the fix, plus the new file viewer and Claude Code round-trip | `qa-ui/retest/`, report `qa-ui/retest/RETEST_REPORT.md` |
@@ -17,7 +17,7 @@ There were three layers, and two of them were written by an independent tester w
 
 | Suite | SQLite | PostgreSQL 16 |
 |---|---|---|
-| Build tests (`server/tests`) | 68 / 68 pass | 68 / 68 pass |
+| Build tests (`server/tests`) | 72 / 72 pass | 72 / 72 pass |
 | Backend QA (`qa/`) | 210 / 210 pass | 210 / 210 pass |
 | Docker image build and compose smoke test (`/healthz`, `/view`, `/api/auth/me`) | n/a | pass |
 

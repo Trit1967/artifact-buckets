@@ -30,7 +30,8 @@ class Actor:
 
     @property
     def personal_token(self) -> bool:
-        return self.token is not None and self.token.kind == "personal"
+        # Personal and sync tokens never carry admin or auditor powers.
+        return self.token is not None and self.token.kind in ("personal", "sync")
 
     @property
     def is_admin(self) -> bool:

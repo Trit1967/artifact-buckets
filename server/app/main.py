@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import accounts, api, audit, claude_dist, config, directory, fs, mcp, oauth, paths, storage
+from . import accounts, api, audit, claude_dist, config, sync, directory, fs, mcp, oauth, paths, storage
 from .db import Volume, init_engine, new_session
 from .errors import AppError
 
@@ -152,6 +152,7 @@ def create_app() -> FastAPI:
 
     app.include_router(oauth.router)
     app.include_router(claude_dist.router)
+    app.include_router(sync.router)
     app.include_router(mcp.router)
     app.include_router(api.router)
     app.include_router(api.preview_router)

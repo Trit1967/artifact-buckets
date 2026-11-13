@@ -1,0 +1,30 @@
+{
+  "description": "Artifact Buckets sync: after each Claude Code reply, copy the files Claude made to your folders. Does nothing until this computer is linked (sync link), and can be paused (sync off).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/sync/sync.sh\" hook; powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/sync/sync.ps1\" hook; echo ok",
+            "async": true,
+            "timeout": 900
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/sync/sync.sh\" hook; powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/sync/sync.ps1\" hook; echo ok",
+            "async": true,
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}

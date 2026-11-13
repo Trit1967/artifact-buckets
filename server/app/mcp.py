@@ -339,7 +339,8 @@ def audit_query(db: Session, *, action: str | None = None, user: str | None = No
 
 def token_info(db: Session, t: Token) -> dict[str, Any]:
     u = db.get(User, t.user_id)
-    return {"id": t.id, "name": t.name, "kind": "device" if t.kind.startswith("oauth") else "personal",
+    kind = "device" if t.kind.startswith("oauth") else ("sync" if t.kind == "sync" else "personal")
+    return {"id": t.id, "name": t.name, "kind": kind,
             "hint": t.hint, "user": u.username if u else None, "scope": t.scope, "folders": t.folders,
             "created_at": t.created_at.isoformat() + "Z",
             "last_used": t.last_used.isoformat() + "Z" if t.last_used else None,

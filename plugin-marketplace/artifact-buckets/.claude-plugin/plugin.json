@@ -1,7 +1,7 @@
 {
   "name": "artifact-buckets",
-  "version": "0.3.0",
-  "description": "Save what Claude Code makes into Artifact Buckets, the team file manager, and find, organize and share it. Signs in through your browser.",
+  "version": "0.4.0",
+  "description": "Save what Claude Code makes into Artifact Buckets, the team file manager, and find, organize and share it. Signs in through your browser, and can copy the files Claude makes on this computer to your folders.",
   "author": { "name": "Lab platform team" },
   "keywords": ["files", "artifacts", "storage", "sharing"]
 }

@@ -75,7 +75,7 @@ def end_web_session(db: Session, raw: str | None) -> None:
 def issue_token(db: Session, user: User, *, name: str, kind: str, scope: str = "write",
                 folders: list[str] | None = None, ttl: dt.timedelta | None = None,
                 client_id: str | None = None, grant_id: str | None = None) -> tuple[str, Token]:
-    prefix = {"personal": "ab_pat_", "oauth_access": "ab_at_", "oauth_refresh": "ab_rt_"}[kind]
+    prefix = {"personal": "ab_pat_", "oauth_access": "ab_at_", "oauth_refresh": "ab_rt_", "sync": "ab_sync_"}[kind]
     raw = new_secret(prefix)
     tok = Token(user_id=user.id, name=name[:128], kind=kind, token_hash=sha256_hex(raw), hint=raw[-4:],
                 scope=scope, folders=folders or None, client_id=client_id, grant_id=grant_id,

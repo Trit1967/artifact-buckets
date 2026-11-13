@@ -214,8 +214,10 @@ claude plugin install {PLUGIN}@{MARKETPLACE}
 ```
 
 If the marketplace is already there, run `claude plugin marketplace update {MARKETPLACE}` instead of adding it.
-The plugin has an MCP server entry pointing at {base}/mcp, two skills (`buckets`, `buckets-admin`) and two
-commands (`/buckets-setup`, `/buckets-open`). It has no hooks and runs no programs of its own.
+The plugin has an MCP server entry pointing at {base}/mcp, two skills (`buckets`, `buckets-admin`), two
+commands (`/buckets-setup`, `/buckets-open`) and one background hook. The hook runs the plugin's sync script
+(`sync/sync.sh` or `sync/sync.ps1`) when a session starts and after each reply. Until the person links this
+computer in the last step, the script finds no link and exits straight away, doing nothing.
 
 ## {n + 1}. Sign in
 
@@ -224,9 +226,32 @@ The person signs in and presses **Connect**; the command finishes by itself. The
 
 ## {n + 2}. Check
 
-`claude mcp list` should show `plugin:{PLUGIN}:{SERVER}` as Connected. Tell the person it's done, and that
-a new Claude Code window (or `/reload-plugins` in this one) picks up the plugin. Something to try:
-"save this to my buckets".
+`claude mcp list` should show `plugin:{PLUGIN}:{SERVER}` as Connected.
+
+## {n + 3}. Offer to bring in their existing work
+
+Claude Code keeps a history of the files it created and edited on this computer. The sync script reads that
+history and copies those files to the person's own Artifact Buckets folders: a project's files go under
+`projects/<project folder name>/`, anything else under `inbox/`. It leaves out files kept in git (tracked or
+ignored), secrets (`.env`, keys, certificates, anything named secret or credential), build and dependency
+folders, hidden files, and anything under `.claude`. It only ever adds files to the person's own `projects` and
+`inbox` folders; it can't read, change or delete anything on the server.
+
+1. Save the script to `~/.artifact-buckets/` (on Windows `%USERPROFILE%\\.artifact-buckets\\`):
+   Windows {base}/claude/sync.ps1, macOS and Linux {base}/claude/sync.sh. It's the same script the plugin ships.
+2. Show what it would copy, changing nothing. Windows:
+   `powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\\.artifact-buckets\\sync.ps1" scan`;
+   macOS and Linux: `sh ~/.artifact-buckets/sync.sh scan`.
+   The first scan reads all of Claude Code's history and can take a minute.
+3. Show the person the summary (folders, counts, sizes, and what's left out) and ask whether to copy them and
+   keep new files in sync from now on. If they say no, stop here: nothing has been sent.
+4. If yes, run the script with `link {base}`. It prints a code and opens the browser at a page that asks the
+   person to allow this computer; the codes must match. The command waits until they press **Allow**.
+5. Then run it with `run`. From now on the plugin's hook copies new and changed files after each reply.
+   The person can pause it with `off`, resume with `on`, or turn this computer off on the Connect page.
+
+Tell the person it's done, where their files went, and that a new Claude Code window (or `/reload-plugins`
+in this one) picks up the plugin. Something to try: "save this to my buckets".
 """)
     return "\n".join(out)
 
@@ -234,6 +259,26 @@ a new Claude Code window (or `/reload-plugins` in this one) picks up the plugin.
 @router.get("/claude/install.sh")
 def install_sh() -> PlainTextResponse:
     return PlainTextResponse(_script(SH), headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/claude/sync.ps1")
+def sync_ps1() -> Response:
+    return _sync_script("sync.ps1")
+
+
+@router.get("/claude/sync.sh")
+def sync_sh() -> Response:
+    return _sync_script("sync.sh")
+
+
+def _sync_script(name: str) -> Response:
+    """The sync script from the plugin, for setup to save in ~/.artifact-buckets before the plugin is in use."""
+    path = os.path.join(plugin_dir(), "sync", name)
+    if not os.path.isfile(path):
+        return JSONResponse({"error": "not_found", "message": "Not found"}, status_code=404)
+    with open(path, "rb") as f:
+        data = f.read()
+    return Response(data, media_type="text/plain; charset=utf-8", headers={"Cache-Control": "no-cache"})
 
 
 @router.get("/claude/{name}")
@@ -311,12 +356,39 @@ if ($LASTEXITCODE -ne 0) { Stop-Setup "Couldn't install the plugin. Run: claude 
 Step "Plugin installed"
 
 $status = (claude mcp list 2>&1 | Out-String)
-if ($status -match ([regex]::Escape('{{MCP_NAME}}') + '[^\r\n]*Connected')) {
-  Write-Host ""; Write-Host "  Already signed in. Claude Code can save to Artifact Buckets." -ForegroundColor Green; Write-Host ""; return
+if ($status -match ([regex]::Escape('{{MCP_NAME}}') + '[^\r\n]*Connected')) { Step "Already signed in" }
+else {
+  Step "Opening your browser to sign in. Sign in, then press Connect."
+  claude mcp login '{{MCP_NAME}}'
+  if ($LASTEXITCODE -ne 0) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
+  Step "Signed in"
 }
-Step "Opening your browser to sign in. Sign in, then press Connect."
-claude mcp login '{{MCP_NAME}}'
-if ($LASTEXITCODE -ne 0) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
+
+# Bring in what Claude has already made here, if the person wants it.
+$dir = Join-Path $HOME '.artifact-buckets'
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+$sync = Join-Path $dir 'sync.ps1'
+$conf = Join-Path $dir 'sync.conf'
+$ps = Join-Path $PSHOME 'powershell.exe'; if (-not (Test-Path $ps)) { $ps = 'powershell.exe' }
+function Sync-Do { & $ps -NoProfile -ExecutionPolicy Bypass -File $sync @args }
+$linked = (Test-Path $conf) -and ((Get-Content -Raw $conf) -match '(?m)^token=.')
+if (-not $linked) {
+  try {
+    Invoke-WebRequest -UseBasicParsing -Uri "$Server/claude/sync.ps1" -OutFile $sync -ErrorAction Stop
+    Write-Host ""
+    Step "Looking for files Claude has already made on this computer..."
+    $scan = (Sync-Do scan | Out-String)
+    Write-Host $scan.TrimEnd()
+    if ($scan -notmatch 'Nothing new to copy') {
+      Write-Host ""
+      $a = Read-Host "  Copy these to your Artifact Buckets folders, and keep new ones in sync? (Y/n)"
+      if ($a -notmatch '^\s*[nN]') {
+        Sync-Do link $Server
+        if ($LASTEXITCODE -eq 0) { Sync-Do run }
+      } else { Step "Skipped. Nothing was copied. You can do this any time from the Connect page." }
+    }
+  } catch { Step "Couldn't look for existing files ($($_.Exception.Message)). You can do this later from the Connect page." }
+}
 
 Write-Host ""
 Write-Host "  Done. Claude Code can now save to Artifact Buckets." -ForegroundColor Green
@@ -367,10 +439,33 @@ claude plugin install {{PLUGIN}} >/dev/null 2>&1 || quit "Couldn't install the p
 say "Plugin installed"
 
 if claude mcp list 2>/dev/null | grep -F '{{MCP_NAME}}' | grep -q Connected; then
-  printf '\n  Already signed in. Claude Code can save to Artifact Buckets.\n\n'; exit 0
+  say "Already signed in"
+else
+  say "Opening your browser to sign in. Sign in, then press Connect."
+  claude mcp login '{{MCP_NAME}}' </dev/tty || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
+  say "Signed in"
 fi
-say "Opening your browser to sign in. Sign in, then press Connect."
-claude mcp login '{{MCP_NAME}}' </dev/tty || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
+
+# Bring in what Claude has already made here, if the person wants it.
+dir="$HOME/.artifact-buckets"; mkdir -p "$dir"; sync="$dir/sync.sh"
+if ! grep -qs '^token=.' "$dir/sync.conf"; then
+  if [ -n "$CA_URL" ]; then got=$(curl -fsSL --cacert "$dir/server.crt" "$SERVER/claude/sync.sh" -o "$sync" && echo y || true)
+  else got=$(curl -fsSL "$SERVER/claude/sync.sh" -o "$sync" && echo y || true); fi
+  if [ "$got" = y ]; then
+    printf '\n'; say "Looking for files Claude has already made on this computer..."
+    scan=$(sh "$sync" scan 2>&1 || true); printf '%s\n' "$scan"
+    if ! printf '%s' "$scan" | grep -q 'Nothing new to copy'; then
+      printf '\n  Copy these to your Artifact Buckets folders, and keep new ones in sync? (Y/n) '
+      a=$(head -n 1 </dev/tty 2>/dev/null || true)
+      case "$a" in
+        [nN]*) say "Skipped. Nothing was copied. You can do this any time from the Connect page." ;;
+        *) sh "$sync" link "$SERVER" </dev/tty && sh "$sync" run || true ;;
+      esac
+    fi
+  else
+    say "Couldn't look for existing files. You can do this later from the Connect page."
+  fi
+fi
 
 printf '\n  Done. Claude Code can now save to Artifact Buckets.\n  Open Claude Code and try: save this to my buckets\n\n'
 """

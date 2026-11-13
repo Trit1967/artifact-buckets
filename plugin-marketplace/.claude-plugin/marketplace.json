@@ -7,7 +7,7 @@
       "name": "artifact-buckets",
       "source": "./artifact-buckets",
       "description": "Save what Claude Code makes into Artifact Buckets, the team file manager, and find, organize and share it.",
-      "version": "0.3.0"
+      "version": "0.4.0"
     }
   ]
 }

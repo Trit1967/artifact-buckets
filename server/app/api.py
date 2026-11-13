@@ -85,7 +85,8 @@ def login(body: LoginBody, request: Request, db: Session = Depends(get_db)) -> R
     accounts.touch(db, u)
     audit.log(db, Actor(user=u, via="web", ip=_ip(request)), "signin.password", u.username)
     db.commit()
-    resp = JSONResponse({"user": accounts.user_info(db, u), "csrf": csrf})
+    from . import sync
+    resp = JSONResponse({"user": accounts.user_info(db, u), "csrf": csrf, "welcome": not sync.welcomed(db, u.id)})
     set_session_cookie(resp, raw)
     return resp
 
@@ -114,7 +115,8 @@ def me(request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     u = db.get(User, sess.user_id)
     if u is None or u.status != "active":
         return {"user": None, **info}
-    return {"user": accounts.user_info(db, u), "csrf": sess.csrf, **info}
+    from . import sync  # imports this module, so it's loaded here
+    return {"user": accounts.user_info(db, u), "csrf": sess.csrf, "welcome": not sync.welcomed(db, u.id), **info}
 
 
 # ---- files ----------------------------------------------------------------------
@@ -376,7 +378,7 @@ def access_check(path: str, user: str | None = None, actor: Actor = Depends(curr
 
 @router.get("/tokens")
 def tokens_list(all: bool = False, actor: Actor = Depends(current), db: Session = Depends(get_db)):
-    q = select(Token).where(Token.kind.in_(("personal", "oauth_refresh")), Token.revoked.is_(False))
+    q = select(Token).where(Token.kind.in_(("personal", "oauth_refresh", "sync")), Token.revoked.is_(False))
     if all:
         accounts.require_admin(actor)
     else:

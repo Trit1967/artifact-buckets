@@ -17,9 +17,17 @@
   load();
   const devices = $derived((tokens || []).filter((t) => t.kind === 'device'));
   const personal = $derived((tokens || []).filter((t) => t.kind === 'personal'));
+  const syncers = $derived((tokens || []).filter((t) => t.kind === 'sync'));
+  let sync = $state(null);
+  api.get('/api/sync/status', null, { quiet: true }).then((d) => (sync = d)).catch(() => {});
+  const home = `/users/${session.user.username}`;
 
   async function revoke(t) {
-    try { await api.del(`/api/tokens/${t.id}`); toast(t.kind === 'device' ? `Disconnected ${t.name}` : `Revoked ${t.name}`); load(); } catch (e) { fail(e); }
+    try {
+      await api.del(`/api/tokens/${t.id}`);
+      toast(t.kind === 'device' ? `Disconnected ${t.name}` : t.kind === 'sync' ? `${t.name.replace(/^Sync on /, '')} no longer syncs` : `Revoked ${t.name}`);
+      load();
+    } catch (e) { fail(e); }
   }
   async function create(e) {
     e.preventDefault();
@@ -127,6 +135,30 @@
             <span class="note">Connected {ago(d.created_at)} · last used {d.last_used ? ago(d.last_used) : 'not yet'} · stays signed in until {when(d.expires_at)} unless unused</span>
           </span>
           <button class="btn sm danger" onclick={() => revoke(d)}>Disconnect</button>
+        </div>
+      {/each}
+    {/if}
+  </section>
+
+  <section class="card" id="sync">
+    <div class="hd">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h2>{everyone ? 'Everyone’s computers that sync' : 'Computers that sync'}</h2>
+        <span class="note">They copy the files Claude Code makes into {everyone ? 'each person’s' : 'your'} <span class="mono">projects</span> and <span class="mono">inbox</span>, after each reply. They can only add files.</span>
+      </div>
+      {#if !everyone && sync?.files}<a class="btn" href={`/files?path=${encodeURIComponent(home + '/projects')}`}><Icon name="folder" />{sync.files} synced {sync.files === 1 ? 'file' : 'files'}</a>{/if}
+    </div>
+    {#if !tokens}<div class="empty">Loading…</div>
+    {:else if !syncers.length}<div class="empty">None yet. The setup line above offers to bring in what Claude has already made on a computer, and keeps it in sync.</div>
+    {:else}
+      {#each syncers as d}
+        <div class="dev">
+          <span class="dvi"><Icon name="refresh" /></span>
+          <span class="grow" style="display:flex;flex-direction:column;gap:3px">
+            <span style="font-weight:500">{d.name.replace(/^Sync on /, '')}{#if everyone} <span class="note">· {d.user}</span>{/if}</span>
+            <span class="note">Linked {ago(d.created_at)} · last synced {d.last_used ? ago(d.last_used) : 'not yet'}</span>
+          </span>
+          <button class="btn sm danger" onclick={() => revoke(d)}>Turn off</button>
         </div>
       {/each}
     {/if}

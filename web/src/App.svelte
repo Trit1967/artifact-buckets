@@ -21,13 +21,17 @@
   import Directory from './pages/Directory.svelte';
   import Smb from './pages/Smb.svelte';
   import Audit from './pages/Audit.svelte';
+  import Link from './pages/Link.svelte';
+  import Welcome from './pages/Welcome.svelte';
 
   const PUBLIC = ['/login'];
   const PAGES = {
     '/files': [Files, 'all'], '/view': [Viewer, 'all'], '/trash': [Trash, 'all'], '/incoming': [Incoming, 'all'], '/connect': [Connect, 'all'],
     '/overview': [Overview, 'auditor'], '/users': [Users, 'auditor'], '/groups': [Groups, 'all'], '/storage': [Storage, 'auditor'],
     '/directory': [Directory, 'auditor'], '/smb': [Smb, 'auditor'], '/audit': [Audit, 'auditor'], '/consent': [Consent, 'all'],
+    '/link': [Link, 'all'], '/welcome': [Welcome, 'all'],
   };
+  const FULL = ['/login', '/consent', '/link', '/welcome'];
 
   let pool = $state(null);
   session.load();
@@ -38,7 +42,8 @@
     if (!session.user && !PUBLIC.includes(p)) {
       navigate(`/login?next=${encodeURIComponent(p + (route.query.toString() ? '?' + route.query : ''))}`, true);
     } else if (session.user && (p === '/' || p === '/login')) {
-      navigate(route.query.get('next') && p === '/login' ? safeNext(route.query.get('next')) : (session.isAuditor ? '/overview' : '/files'), true);
+      const home = session.welcome ? '/welcome' : session.isAuditor ? '/overview' : '/files';
+      navigate(route.query.get('next') && p === '/login' ? safeNext(route.query.get('next')) : home, true);
     }
   });
 
@@ -61,7 +66,7 @@
   const page = $derived(PAGES[route.path]);
   const Page = $derived(page?.[0]);
   const allowed = $derived(page && (page[1] === 'all' || session.isAuditor));
-  const full = $derived(route.path === '/login' || route.path === '/consent');
+  const full = $derived(FULL.includes(route.path));
 
   async function signOut() {
     await api.post('/api/auth/logout').catch(() => {});
@@ -99,7 +104,10 @@
 {#if !session.loaded}
   <div class="boot"><Logo size={28} /></div>
 {:else if full || !session.user}
-  {#if route.path === '/login'}<Login />{:else if route.path === '/consent' && session.user}<Consent />{/if}
+  {#if route.path === '/login'}<Login />
+  {:else if session.user && route.path === '/consent'}<Consent />
+  {:else if session.user && route.path === '/link'}<Link />
+  {:else if session.user && route.path === '/welcome'}<Welcome />{/if}
 {:else}
   <div class="shell">
     <aside class="side">
@@ -144,6 +152,7 @@
           {#if menu}
             <div class="menu card">
               <div class="note" style="padding:8px 10px">Signed in as <span class="mono">{session.user.username}</span></div>
+              <a class="mi" href="/welcome"><Icon name="sparkle" />Getting started</a>
               <button class="mi" onclick={signOut}><Icon name="signout" />Sign out</button>
             </div>
           {/if}

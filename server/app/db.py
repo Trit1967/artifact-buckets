@@ -133,7 +133,7 @@ class Token(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(128))
-    kind: Mapped[str] = mapped_column(String(16))  # personal | oauth_access | oauth_refresh
+    kind: Mapped[str] = mapped_column(String(16))  # personal | oauth_access | oauth_refresh | sync
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     hint: Mapped[str] = mapped_column(String(16), default="")
     scope: Mapped[str] = mapped_column(String(16), default="write")  # read | write
