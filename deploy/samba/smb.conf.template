@@ -1,0 +1,86 @@
+[global]
+   security = ADS
+   realm = ${AD_REALM}
+   workgroup = ${AD_WORKGROUP}
+   netbios name = ${SMB_NETBIOS}
+   server role = member server
+
+   # Identities: uid/gid = ${AB_IDMAP_BASE} + RID, the same formula the app uses to write permissions.
+   idmap config * : backend = tdb
+   idmap config * : range = 3000-7999
+   idmap config ${AD_WORKGROUP} : backend = rid
+   idmap config ${AD_WORKGROUP} : range = ${AB_IDMAP_BASE}-${IDMAP_TOP}
+   winbind use default domain = yes
+   winbind enum users = no
+   winbind enum groups = no
+   winbind refresh tickets = yes
+   template shell = /usr/sbin/nologin
+
+   # Security baseline
+   server min protocol = SMB3_11
+   server smb encrypt = required
+   server signing = mandatory
+   kerberos method = secrets and keytab
+   ntlm auth = disabled
+   restrict anonymous = 2
+   map to guest = never
+   disable netbios = yes
+   smb ports = 445
+   load printers = no
+   printing = bsd
+   printcap name = /dev/null
+   disable spoolss = yes
+
+   # Permissions are POSIX ACLs written by the app. Windows sees them as NTFS permissions,
+   # but nobody can change them from Explorer.
+   nt acl support = no
+   inherit acls = yes
+   inherit permissions = no
+   map acl inherit = no
+   store dos attributes = no
+   access based share enum = yes
+   hide unreadable = yes
+   veto files = /.versions/.trash/.tmp/.mergerfs/.smbstatus.json/.artifact-buckets-volume/
+   delete veto files = no
+
+   # Every file operation is written to Samba's own log files in /var/log/samba (the samba-logs volume),
+   # one line per operation: user|client IP|machine|share|operation|result|path. Point your SIEM forwarder there.
+   # The app's own audit log does not read these; files added over the share are picked up by the app's indexer.
+   vfs objects = shadow_copy2 full_audit
+   # Restore points from protected storage show as Windows "Previous Versions" (read-only).
+   shadow:snapdir = /srv/tree/.zfs/snapshot
+   shadow:snapdirseverywhere = no
+   # Restore point names are ab-<kind>.<UTC time>, e.g. ab-daily.20261113-0100. (To verify on the lab's Samba.)
+   shadow:snapprefix = ^ab-[a-z]*$
+   shadow:delimiter = .
+   shadow:format = %Y%m%d-%H%M
+   shadow:localtime = no
+   shadow:sort = desc
+   full_audit:syslog = false
+   full_audit:prefix = %u|%I|%m|%S
+   full_audit:success = connect disconnect openat renameat unlinkat mkdirat
+   full_audit:failure = connect openat
+   full_audit:facility = local5
+   full_audit:priority = notice
+   log level = 1 auth_audit:3
+   logging = file
+   log file = /var/log/samba/log.%m
+   max log size = 10000
+
+[home]
+   comment = Your Artifact Buckets home folder
+   path = /srv/tree/users/%U
+   browseable = yes
+   read only = no
+   create mask = 0660
+   directory mask = 0770
+   valid users = @"${AD_WORKGROUP}\Domain Users"
+
+[shared]
+   comment = Team folders
+   path = /srv/tree/shared
+   browseable = yes
+   read only = no
+   create mask = 0660
+   directory mask = 0770
+   valid users = @"${AD_WORKGROUP}\Domain Users"

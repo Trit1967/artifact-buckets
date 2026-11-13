@@ -1,0 +1,147 @@
+{
+ "UI-2 consent text": "Connect Claude Code to Artifact Buckets? | Signed in as Jonas Lindqvist. Claude Code is waiting on this computer (port 33418). | Save files to /users/jonas and to team folders you can edit | Find, open, move, rename and delete files you have access to | Share your folders, the same as you can on the",
+ "UI-2 Enter result": "no callback hit",
+ "UI-25 bare /consent": "This sign-in link is incomplete | Start again from Claude Code: run /mcp, choose artifact-buckets, then Authenticate. | Connect Claude Code",
+ "UI-1 consent with foreign redirect": "Connect Claude Code to Artifact Buckets? | Signed in as Jonas Lindqvist. | This sign-in goes to attacker.example, not to Claude Code on this computer. Connect only if you started it there yourself. | Save files to /users/jonas and to team folders you can edit | Find, open, move, rename and delete fi",
+ "UI-1 approve with unregistered foreign redirect ->": {
+  "url": "http://localhost:8096/oauth/approve",
+  "body": "{\"error\":\"invalid_request\",\"error_description\":\"Redirect URI is not registered for this client\"}"
+ },
+ "UI-24 after login with next=/\\evil.example": "http://localhost:8096/files",
+ "UI-4 /view of saved file": {
+  "save": 200,
+  "h1": "link-target.md",
+  "body": "Link target\n\nHello."
+ },
+ "UI-4 /view raw link format": "link-target.md",
+ "UI-4 old /files?path=<file> link": {
+  "url": "http://localhost:8096/files?path=%2Fusers%2Fmaya%2Finbox%2Flink-target.md",
+  "text": "Mine | Home | inbox | link-target.md | Search files | MINE | Home | Inbox | Projects | Trash | TEAM FOLDERS | platform-eng | research | SHARED WIT"
+ },
+ "UI-9 detail before/after upload": {
+  "before": "12 B · version 1 · Nov 13, 06:33 AM",
+  "after": "33 B · version 2 · Nov 13, 06:33 AM",
+  "preview": "new content for the next version"
+ },
+ "UI-9 after restore": {
+  "note": "12 B · version 3 · Nov 13, 06:33 AM",
+  "preview": "version one"
+ },
+ "UI-10 focus styles via Tab": {
+  "rowbtn": "solid 2px none",
+  "mebtn": "solid 2px none",
+  "btn": "solid 2px none",
+  "leaf": "solid 2px none"
+ },
+ "UI-10 .seg focus": "solid 2px",
+ "UI-43 mobile header height": 57,
+ "UI-12 tap file at 390": {
+  "url": "http://localhost:8096/view?path=%2Fusers%2Fmaya%2Finbox%2Flink-target.md",
+  "h1": "link-target.md"
+ },
+ "UI-11 account button visible in drawer (member)": true,
+ "UI-11 sign out visible/in viewport": {
+  "visible": true,
+  "box": {
+   "x": 21,
+   "y": 445.96875,
+   "width": 348,
+   "height": 36.1875
+  }
+ },
+ "UI-32 admin overview 390 horizontal overflow": 0,
+ "UI-11 admin drawer at 390x700: account button box before/after scroll": {
+  "bb": {
+   "x": 14,
+   "y": 635.765625,
+   "width": 362,
+   "height": 48.984375
+  },
+  "bb2": {
+   "x": 14,
+   "y": 635.765625,
+   "width": 362,
+   "height": 48.984375
+  },
+  "vh": 700
+ },
+ "UI-11 admin account click": "ok",
+ "UI-11 900px account visible in drawer": true,
+ "UI-22 trash subtitle": "Trash | Deleted files and folders stay here for 30 days with their versions and sharing. | Back to files | Item\tWas in\tSize\tDeleted\tKept for\t | sub-renamed | 3 files | \t",
+ "UI-26 drag ERROR": "Error: locator.click: Error: strict mode violation: getByRole('button', { name: 'Upload' }) resolved to 3 elements:\n    1) <button class=\"btn pri\">…</button> aka getByRole('button', { name: 'Upload', exact: true })\n    2) <button title=\"dropped.txt\" class=\"grid rowbtn svelte-1xvfk9n\">…</button> aka ",
+ "UI-30 member sidebar card": "YOUR SPACE | 2.0 MB of 50 GB",
+ "UI-36 elements overflowing the detail panel": {
+  "file": "/users/maya/inbox/dropped.txt",
+  "tags": [],
+  "over": []
+ },
+ "UI-38 long folder row title attr": "fold-er-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-",
+ "UI-41 detail panel markdown rendered": 1,
+ "UI-16 grant maya owner on /shared/platform-eng": "200 {\"id\":17,\"path\":\"/shared/platform-eng\",\"principal\":{\"type\":\"user\",\"id\":2,\"name\":\"maya\",\"display_name",
+ "UI-16 Add rule visible for team Owner": true,
+ "UI-16 rule dialog fields": "Add a routing rule | Match on | Git repository | Project name | Pattern | Save to | Priority | Use * as a wildcard. The target may use {project} and {user}. Repository addresses are compared without t",
+ "UI-16 owner add rule result": "Rule added | rules: true",
+ "UI-16 owner add rule to foreign team": "Only admins, or Owners of the target team folder, can manage routing rules",
+ "UI-21/UI-3 connect page": {
+  "marketplace": "/plugin marketplace add https://git.lab.local/tools/claude-plugins.git",
+  "authenticate": true,
+  "browserOpensOnFirstUse": false
+ },
+ "UI-13 attention item present": 1,
+ "UI-13 attention link ->": {
+  "url": "http://localhost:8096/connect",
+  "h1": "Connect Claude Code"
+ },
+ "UI-14 admin everyone control count": 1,
+ "UI-14 other people tokens visible": {
+  "jonas": false,
+  "maya": true,
+  "snippet": "Connect Claude Code | Once connected, Claude Code saves what it makes straight into your folders, and can find, organize and share them for you. | 1 | Install the plugin | In Claude Code, run these two com"
+ },
+ "UI-15 access check with person": "Who can reach a folder? | Check | maya | can open and change it as | Owner | from a direct share on /shared/platform-eng | maya | /shared/platform-eng | Owner | Admins | system role | Owner | platform-eng · group of 3 | /shared/platform-eng | Editor",
+ "UI-15 diego (not a member)": "Who can reach a folder? | Check | diego | can't reach it. No grant on this folder or above includes them. | maya | /shared/platform-eng | Owner | Admins | system role | Owner | platform-eng · group of 3 | /shared/platform-eng | Editor",
+ "UI-18 SMB audit claim": [
+  "Every file operation recorded. Samba records opens, writes, renames and deletes in its own log for your SIEM. Files added over the share appear here within a minute."
+ ],
+ "UI-34 audit sentences user.*": [
+  "Nov 13, 06:34 AM admin changed priya quota → 0.10 GB Browser 127.0.0.1 ",
+  "Nov 13, 06:34 AM admin reactivated priya Browser 127.0.0.1 ",
+  "Nov 13, 06:34 AM admin suspended priya Browser 127.0.0.1 ",
+  "Nov 13, 06:28 AM admin added diego as member Browser 127.0.0.1 "
+ ],
+ "UI-31 through options": [
+  "Any",
+  "Browser",
+  "Claude Code",
+  "API",
+  "Windows share",
+  "System"
+ ],
+ "UI-31 rows shown vs exported": {
+  "shown": 200,
+  "exported": 297
+ },
+ "UI-10 audit row tabIndex": 0,
+ "UI-10 keyboard reaches audit table rows": true,
+ "UI-44 volume cards label": [
+  "12.5 GB used",
+  "shares the host disk"
+ ],
+ "UI-37 sidebar pool card": {
+  "text": "STORAGE POOL | 12.5 GB of 252 GB",
+  "height": 87
+ },
+ "UI-39 \"· group of\"/\"# \" glitches": {
+  "groupOf": [],
+  "ruleSpace": false
+ },
+ "UI-39 routing preview reason": "{\"folder\":\"/users/admin/projects/platform-api\",\"reason\":\"project\"}",
+ "UI-39 trash deleted-by": "Trash | Deleted files and folders stay here for 30 days with their versions and sharing. As an admin you see everyone’s. | Back to files | Item\tWas in\tDeleted by\tSize\tDeleted\tKept for\t | sub-renamed | 3 files | \t/users/maya/inbox\tMaya Okafor\t9 B\t2 min\t30 days\t | Restore | ops-renamed.md | \t/users/maya/projects\tMa",
+ "UI-35 auditor /files failing requests": [],
+ "UI-35 auditor files page": "Mine | Home | Owner | Search files | Share | New folder | Upload | MINE | Home | Inbox | Projects | Trash | Name | Saved by | From | Size | Modified | inbox | — | projects | —",
+ "console/page errors": [
+  "[console] http://localhost:8096/oauth/approve Failed to load resource: the server responded with a status of 400 (Bad Request)",
+  "[console] http://localhost:8096/files?path=%2Fusers%2Fmaya%2Finbox%2Flink-target.md Failed to load resource: the server responded with a status of 404 (Not Found)",
+  "[console] http://localhost:8096/incoming Failed to load resource: the server responded with a status of 403 (Forbidden)"
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "⋯ menu shown on": {
+  "/users/maya": false,
+  "/users/maya/inbox": false,
+  "/users/maya/projects": false,
+  "/users/maya/projects/fold-qa": true,
+  "/shared/platform-eng": false,
+  "/shared/platform-eng/projects": false,
+  "/users/maya/inbox/viewer": true
+ },
+ "menu items": [
+  "Rename folder",
+  "Move folder",
+  "Delete folder"
+ ],
+ "rename prefill": "sub",
+ "after folder rename": {
+  "url": "http://localhost:8096/files?path=/users/maya/projects/fold-qa/sub-renamed",
+  "h1": "sub-renamed",
+  "files": 3
+ },
+ "move prefill": "/users/maya/projects/fold-qa",
+ "after folder move": {
+  "url": "http://localhost:8096/files?path=/users/maya/inbox/sub-renamed",
+  "h1": "sub-renamed",
+  "files": 3
+ },
+ "move into itself": "Cannot move a folder into itself",
+ "move to /users/jonas": "No such file or folder, or you do not have access",
+ "delete dialog (3 files)": "Move sub-renamed to trash? | The folder and the 3 files in it (9 B) stay in your trash for 30 days, with versions and sharing, and you can restore it from there. | Cancel | Move to trash",
+ "after delete": {
+  "url": "http://localhost:8096/files?path=/users/maya/inbox",
+  "toast": "Moved to trash (3 files). You can restore it for 30 days."
+ },
+ "delete dialog (55 files)": "Move big to trash? | The folder and the 55 files in it (100 B) stay in your trash for 30 days, with versions and sharing, and you can restore it from there. | Cancel | Move to trash",
+ "after big delete": {
+  "url": "http://localhost:8096/files?path=/users/maya/projects/fold-qa",
+  "toast": "Moved to trash (55 files). You can restore it for 30 days."
+ },
+ "trash shows": "Trash | Deleted files and folders stay here for 30 days with their versions and sharing. | Back to files | Item\tWas in\tSize\tDeleted\tKept for\t | big | 55 files | \t/users/maya/projects/fold-qa\t100 B\tJust now\t30 days\t | Restore | sub-renamed | 3 files | \t/users/maya/inbox\t9 B\tJust now\t30 days\t | Restore | ops-renamed.md | ",
+ "restore big folder": "Restored to /users/maya/projects/fold-qa/big",
+ "menu keyboard": {
+  "openedWithEnter": true,
+  "arrowDownFocusRole": "menuitem",
+  "tabFocus": "New folder",
+  "closedOnEsc": true,
+  "focusAfterEsc": null
+ },
+ "editor non-owner on shared folder with own sharing ERROR": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Move to trash' })\u001b[22m\n",
+ "page errors": []
+}

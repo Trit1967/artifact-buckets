@@ -1,0 +1,12 @@
+<!doctype html><html><body><h1 id="h">probe</h1>
+<script>
+const out = {};
+try { out.cookie = document.cookie; } catch (e) { out.cookie = 'ERR ' + e.name; }
+try { out.parentLoc = String(parent.location.href); } catch (e) { out.parentLoc = 'ERR ' + e.name; }
+try { out.parentCookie = parent.document.cookie; } catch (e) { out.parentCookie = 'ERR ' + e.name; }
+try { out.ls = localStorage.length; } catch (e) { out.ls = 'ERR ' + e.name; }
+out.origin = String(self.origin);
+fetch('/api/auth/me', { credentials: 'include' }).then(r => r.text()).then(t => { out.fetch = t.slice(0, 80); done(); }, e => { out.fetch = 'ERR ' + e.message; done(); });
+function done() { document.getElementById('h').textContent = JSON.stringify(out); try { parent.postMessage({ probe: out }, '*'); } catch (e) {} }
+setTimeout(done, 1500);
+</script></body></html>

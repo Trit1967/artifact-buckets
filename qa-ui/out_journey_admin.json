@@ -1,0 +1,232 @@
+[
+ [
+  "add person",
+  "Added qa-xss3. Their home folder is ready."
+ ],
+ [
+  "users search",
+  "Person\tGroups\tRole\tStorage\tLast active\tStatus\t\n\n<X\n<img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>\nqa-xss3\n\t\ndesign\n\tMember\t\n0 B / 50 GB\n\tNever\t\nActive\n\tEdit Suspend"
+ ],
+ [
+  "edit quota",
+  "Added qa-xss3. Their home folder is ready. | Saved changes for <img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>"
+ ],
+ [
+  "row after quota",
+  "<X\n<img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>\nqa-xss3\n\t\ndesign\n\tMember\t\n0 B / 102 MB\n\tNever\t\nActive\n\tEdit Suspend"
+ ],
+ [
+  "suspend",
+  {
+   "t": "Saved changes for <img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2> | <img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2> is suspended",
+   "row": "<X\n<img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>\nqa-xss3\n\t\ndesign\n\tMember\t\n0 B / 102 MB\n\tNever\tSuspended\tEdit Reactivate"
+  }
+ ],
+ [
+  "reactivate",
+  "<X\n<img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>\nqa-xss3\n\t\ndesign\n\tMember\t\n0 B / 102 MB\n\tNever\t\nActive\n\tEdit Suspend"
+ ],
+ [
+  "filter Admins and auditors",
+  "2 of 10"
+ ],
+ [
+  "filter From AD",
+  "0 of 10"
+ ],
+ [
+  "filter Suspended",
+  "0 of 10"
+ ],
+ [
+  "filter Everyone",
+  "10 of 10"
+ ],
+ [
+  "self row",
+  "A\nAdministrator\nadmin\n\t\n—\n\tAdmin\t\n0 B / 50 GB\n\tJust now\t\nActive\n\tYou"
+ ],
+ [
+  "group create",
+  {
+   "t": "Created qa-team with folder /shared/qa-team",
+   "url": "http://localhost:8098/groups?id=5"
+  }
+ ],
+ [
+  "add member",
+  "People\n1\nAdd\n<X\n<img src=x onerror=window.__xss=1>\"><svg onload=window.__xss=2>\nqa-xss3\nadded just now"
+ ],
+ [
+  "grant",
+  {
+   "t": "Created qa-team with folder /shared/qa-team | Added | qa-team is now viewer on /shared/research",
+   "table": "Folder access\nAdd folder\nFolder\tRole\tGranted\t\n/shared/qa-team\tEditor\tJust now by system\tRemove\n/shared/research\tViewer\tJust now by admin\tRemove"
+  }
+ ],
+ [
+  "remove grant",
+  "Added | qa-team is now viewer on /shared/research | Removed qa-team from /shared/research"
+ ],
+ [
+  "remove member",
+  "People\n0\nAdd\nNobody in this group yet."
+ ],
+ [
+  "access check",
+  "Who can reach a folder?\nCheck\nAdmins\nsystem role\nOwner\nplatform-eng· group of 3\n/shared/platform-eng\nEditor"
+ ],
+ [
+  "storage initial",
+  "Storage\n\nEvery volume mounted under the volumes folder joins one pool. People see one folder tree; files spread across the disks behind it. Add a disk any time; drain one to retire it.\n\nRescan mounts\nPool\n12.3 GB of 252 GB\nSingle disk (development mode)\nvol-a\nWaiting to join\n/tmp/qa-ui/vol/vol-a\n12.3 GB used\n252 GB\nMounted\nReadable\nWritable\nAdd to pool\nvol-b\nWaiting to join\n/tmp/qa-ui/vol/vol-b\n12.3 GB used\n252 GB\nMounted\nReadable\nWritable\nAdd to pool\nvol-c\nWaiting to join\n/tmp/qa-ui/vol/vol-c\n12.3 GB used\n252 GB\nMounted\nReadable\nWritable\nAdd to pool\nWhere new files go\nMost free space\nEach new file goes to the volume with the most free space. Best default.\nFill in order\nFill the first volume, then the next. Keeps other disks idle.\nKeep folders on their volume\nNew files go where their folder already is, so a project stays on one disk.\nDefault quotas\nEach person (GB)\nEach team folder (GB)\n\nChange one person's quota on Users. Largest single file: 500 MB. Old versions don't count toward quotas.\n\nSave\nAdding a disk\nMount it on the host under /srv/buckets/volumes/<name> (ext4 or xfs; NFS works too).\nIt appears here as Waiting to join after a rescan, with checks that it's writable.\nPress Add to pool. New files can land on it straight away; nothing restarts and nobody's paths change."
+ ],
+ [
+  "add vols",
+  "vol-a is in the pool. New files can land on it now. | vol-b is in the pool. New files can land on it now."
+ ],
+ [
+  "drain",
+  {
+   "t": "vol-b is in the pool. New files can land on it now. | Draining vol-a. Files move in the background.",
+   "card": "vol-a\nDraining\n/tmp/qa-ui/vol/vol-a\n12.3 GB used\n252 GB\nMoving files\n0 / 1\nStop draining\nIn the pool since Just now"
+  }
+ ],
+ [
+  "drain last",
+  {
+   "t": "Draining vol-a. Files move in the background. | Add another volume before draining the last one"
+  }
+ ],
+ [
+  "after drain wait",
+  "vol-a\nDrained, safe to unmount\n/tmp/qa-ui/vol/vol-a\n12.3 GB used\n252 GB\nMoved\n0 / 1\nIn the pool since Just now\nvol-b\nIn pool\n/tmp/qa-ui/vol/vol-b\n12.3 GB used\n252 GB\nDrain\nIn the pool since Just now\nvol-c\nWaiting to join\n/tmp/qa-ui/vol/vol-c\n12.3 GB used\n252 GB\nMounted\nReadable\nWritable\nAdd to pool"
+ ],
+ [
+  "policy",
+  {
+   "t": "Saved",
+   "checked": "Fill in order\nFill the first volume, then the next. Keeps other disks idle."
+  }
+ ],
+ [
+  "quotas",
+  "Saved | Default quotas saved"
+ ],
+ [
+  "quotas persisted",
+  "40"
+ ],
+ [
+  "add rule",
+  {
+   "t": "Rule added",
+   "flow": "1\nA folder named in the request. “Save this to /shared/design/specs”.\nWhen the repository matches git.lab.local/platform/*, save to /shared/platform-eng/projects/{project}\n#1 · priority 10\nWhen the repository matches git.lab.local/qa/*, save to /shared/research/projects/{project}\n#2 · priority 100\n3\nOtherwise /users/<you>/projects/<project>, named after the repository folder.\n4\nNo project at all: /users/<you>/inbox."
+  }
+ ],
+ [
+  "preview",
+  "TRY IT\nWhere would it go?\n/shared/research/projects/thing\nvia rule # 2 (for you)"
+ ],
+ [
+  "preview empty",
+  "TRY IT\nWhere would it go?\n/users/admin/inbox\nvia your inbox (for you)"
+ ],
+ [
+  "remove rule",
+  {
+   "t": "Rule removed",
+   "flow": "1\nA folder named in the request. “Save this to /shared/design/specs”.\nWhen the repository matches git.lab.local/platform/*, save to /shared/platform-eng/projects/{project}\n#1 · priority 10\n3\nOtherwise /users/<you>/projects/<project>, named after the repository folder.\n4\nNo project at all: /users/<you>/inbox."
+  }
+ ],
+ [
+  "pause",
+  {
+   "t": "Rule removed | Claude Code saves paused",
+   "banner": "Saves from Claude Code are paused. Claude gets a clear message and keeps the file locally. Uploads in the browser still work."
+  }
+ ],
+ [
+  "resume",
+  {
+   "t": "Rule removed | Claude Code saves paused | Claude Code saves resumed",
+   "banner": 0
+  }
+ ],
+ [
+  "token created",
+  {
+   "shown": "ab_pat_C…",
+   "len": 50,
+   "dlg": "Copy your token now\n\nThis is the only time it's shown. Store it in your build server's secret store.\n\nab_pat_CLcH8RCBDePwXHg97TUL5w1J0Xy8QMecQXBdxr8jUl0\nCopy\n\nUse it as Authorization: Bearer … against http://localhost:8098/mcp or the REST API.\n\nDone"
+  }
+ ],
+ [
+  "tokens table",
+  "Personal tokens\nFor build servers and scripts that can't open a browser. Admin tools never work with these.\nNew token\nName\tCan\tLimited to\tLast used\tExpires\t\nqa nightly …jUl0\tRead\t/shared/research\tNever\t2 days\tRevoke"
+ ],
+ [
+  "attention",
+  [
+   [
+    "vol-c is waiting to join the pool",
+    "/storage"
+   ],
+   [
+    "1 personal token(s) expire this week",
+    "/ingest"
+   ]
+  ]
+ ],
+ [
+  "attention token click",
+  {
+   "url": "http://localhost:8098/ingest",
+   "main": "There's no page here. Go to your files."
+  }
+ ],
+ [
+  "revoke",
+  {
+   "t": "Revoked qa nightly",
+   "table": "Personal tokens\nFor build servers and scripts that can't open a browser. Admin tools never work with these.\nNew token\nNo personal tokens."
+  }
+ ],
+ [
+  "audit user.*",
+  "When\tPerson\tWhat\tThrough\tFrom\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss3 status\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss3 status\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss3 quota_bytes\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tadded qa-xss3 as member\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss2 status\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss2 status\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tchanged qa-xss2 quota_bytes\tBrowser\t127.0.0.1\t\nNov 13, 05:30 AM\tadmin\tadded qa-xss2 as member\tBrowser\t127.0.0.1\t\nNov 13, 05:29 AM\tadmin\tadded qa-xss as member\tBrowser\t127.0.0.1\t\nNov 13, 05:25 AM\tadmin\tadded diego as member\tBrowser\t127.0.0.1\t\nNov 13, 05:25 AM\tadmin\tadded lena as auditor\tBrowser\t127.0.0.1\t\nNov 13, 05:25 AM\tadmin\tadded sam as member\tB"
+ ],
+ [
+  "audit maya web",
+  "When\tPerson\tWhat\tThrough\tFrom\t\nNov 13, 05:28 AM\tmaya\tremoved jonas from /users/maya/inbox\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tgave jonas viewer on /users/maya/inbox\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\trestored renamed.txt from the trash\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tdeleted renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tdownloaded renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tmoved renamed.txt to /users/maya/inbox/reports/renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\trestored version 1 of renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tsaved rename"
+ ],
+ [
+  "audit path",
+  "When\tPerson\tWhat\tThrough\tFrom\t\nNov 13, 05:28 AM\tmaya\tremoved jonas from /users/maya/inbox\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tgave jonas viewer on /users/maya/inbox\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\trestored renamed.txt from the trash\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tdeleted renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tdownloaded renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 05:28 AM\tmaya\tmoved renamed.txt to /users/maya/inbox/reports/renamed.txt\tBrowser\t127.0.0.1\t\nNov 13, 0"
+ ],
+ [
+  "audit expand",
+  "{\n  \"action\": \"token.revoke\",\n  \"target\": \"qa nightly\",\n  \"token_id\": 7\n}"
+ ],
+ [
+  "csv",
+  {
+   "name": "audit-2026-11-13.csv",
+   "lines": 109,
+   "head": [
+    "\"time\",\"person\",\"action\",\"target\",\"via\",\"ok\",\"ip\",\"detail\"",
+    "\"2026-11-13T05:31:29.894831Z\",\"admin\",\"token.revoke\",\"qa nightly\",\"web\",\"true\",\"127.0.0.1\",\"{\"\"token_id\"\":7}\"",
+    "\"2026-11-13T05:31:26.209872Z\",\"admin\",\"token.create\",\"qa nightly\",\"web\",\"true\",\"127.0.0.1\",\"{\"\"scope\"\":\"\"read\"\",\"\"folders\"\":[\"\"/shared/research\"\"]}\""
+   ]
+  }
+ ],
+ [
+  "xss flag",
+  null
+ ],
+ [
+  "console",
+  [
+   "[error] http://localhost:8098/storage :: Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ]
+ ]
+]

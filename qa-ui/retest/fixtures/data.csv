@@ -1,0 +1,6 @@
+id,name,amount,note
+1,Alpha,1200.50,"multi, comma"
+2,"Quote ""inside""",-30,=HYPERLINK("x")
+3,<b>html</b>,7%,"line
+break"
+4,Δelta,,

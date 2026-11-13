@@ -1,0 +1,185 @@
+[
+ [
+  "upload-chooser",
+  "Name\nSaved by\nFrom\nSize\nModified\nJSON\ndata.json\nv1\nMaya Okafor\nUpload\n23 B\nJust now\nPDF\ndoc.pdf\nv1\nMaya Okafor\nUpload\n193 B\nJust now\nMD\nnotes.md\nv1\nMaya Okafor\nUpload\n84 B\nJust now\nPNG\npic.png\nv1\nMaya Okafor\nUpload\n135 B\nJust now\nHTML\nprobe.html\nv1\nMaya Okafor\nUpload\n836 B\nJust now\nSVG\nprobe.svg\nv1\nMaya Okafor\nUpload\n262 B\nJust now\nTXT\nscratch-notes.txt\nv1\nMaya Okafor\nClaude Code\n54 B\n2 min\nTXT\nversioned.txt\nv1\nMaya Okafor\nUpload\n11 B\nJust now"
+ ],
+ [
+  "drag-drop",
+  true
+ ],
+ [
+  "listing-hot-after-drop",
+  "card listing svelte-1xvfk9n"
+ ],
+ [
+  "preview probe.html",
+  {
+   "kind": "IFRAME allow-scripts",
+   "inner": "{\"cookie\":\"ERR SecurityError\",\"parentLoc\":\"ERR SecurityError\",\"parentCookie\":\"ERR SecurityError\",\"ls\":\"ERR SecurityError\",\"origin\":\"null\",\"fetch\":\"ERR Failed to fetch\"}"
+  }
+ ],
+ [
+  "preview probe.svg",
+  {
+   "kind": "IFRAME allow-scripts",
+   "inner": "n/a locator.innerText: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  "
+  }
+ ],
+ [
+  "preview notes.md",
+  {
+   "kind": "PRE ",
+   "inner": "# Heading\n\nSome **markdown** <img src=x onerror=alert(1)> <script>alert(2)</script>\n"
+  }
+ ],
+ [
+  "preview data.json",
+  {
+   "kind": "PRE ",
+   "inner": "{\"a\": 1, \"b\": [1,2,3]}\n"
+  }
+ ],
+ [
+  "preview pic.png",
+  {
+   "kind": "IMG ",
+   "inner": ""
+  }
+ ],
+ [
+  "preview doc.pdf",
+  {
+   "kind": "IFRAME allow-scripts",
+   "inner": ""
+  }
+ ],
+ [
+  "preview dropped.txt",
+  {
+   "kind": "PRE ",
+   "inner": "dropped via drag and drop"
+  }
+ ],
+ [
+  "postMessages",
+  [
+   {
+    "probe": {
+     "cookie": "ERR SecurityError",
+     "parentLoc": "ERR SecurityError",
+     "parentCookie": "ERR SecurityError",
+     "ls": "ERR SecurityError",
+     "origin": "null",
+     "fetch": "ERR Failed to fetch"
+    }
+   },
+   {
+    "probe": {
+     "cookie": "ERR SecurityError",
+     "parentLoc": "ERR SecurityError",
+     "parentCookie": "ERR SecurityError",
+     "ls": "ERR SecurityError",
+     "origin": "null",
+     "fetch": "ERR Failed to fetch"
+    }
+   }
+  ]
+ ],
+ [
+  "download",
+  {
+   "name": "notes.md",
+   "same": true
+  }
+ ],
+ [
+  "mkdir",
+  [
+   "Created reports"
+  ]
+ ],
+ [
+  "rename url",
+  "http://localhost:8098/files?path=%2Fusers%2Fmaya%2Finbox&file=%2Fusers%2Fmaya%2Finbox%2Frenamed.txt"
+ ],
+ [
+  "after v2 detail",
+  "v1 content\n\nrenamed.txt\n11 B · version 1 · Nov 13, 05:27 AM\nDownload\nVersions\nRename\nMove\nDelete\nFolder\n/users/maya/inbox\nSaved by\nMaya Okafor\nFrom\nUpload\nSHA-256\nd94aebab0ba3af2f07d3ea3151ec2f264e113c3c5b8f0915f3ef40eae468a08a\nWho can open this"
+ ],
+ [
+  "versions dialog",
+  "Versions of renamed.txt\nVersion\tSaved\tBy\tFrom\tSize\t\nv2Current\tNov 13, 05:28 AM\tMaya Okafor\tUpload\t11 B\t\nv1\tNov 13, 05:27 AM\tMaya Okafor\tUpload\t11 B\tRestore\n\nRestoring copies the old version on top, so nothing is lost: the current one stays in this list."
+ ],
+ [
+  "versions after restore",
+  "Versions of renamed.txt\nVersion\tSaved\tBy\tFrom\tSize\t\nv3Current\tNov 13, 05:28 AM\tMaya Okafor\tUpload\t11 B\t\nv2\tNov 13, 05:28 AM\tMaya Okafor\tUpload\t11 B\tRestore\nv1\tNov 13, 05:27 AM\tMaya Okafor\tUpload\t11 B\tRestore\n\nRestoring copies the old version on top, so nothing is lost: the current one stays in this list."
+ ],
+ [
+  "preview text after restore",
+  "v1 content\n"
+ ],
+ [
+  "move",
+  {
+   "toasts": [
+    "Version 1 is current again",
+    "Moved to /users/maya/inbox/reports"
+   ],
+   "url": "http://localhost:8098/files?path=%2Fusers%2Fmaya%2Finbox"
+  }
+ ],
+ [
+  "delete",
+  [
+   "Moved to trash. You can restore it for 30 days."
+  ]
+ ],
+ [
+  "trash",
+  "Trash\n\nDeleted files and folders stay here for 30 days with their versions and sharing.\n\nBack to files\nItem\tWas in\tSize\tDeleted\tKept for\t\n\nrenamed.txt\n\t/users/maya/inbox/reports\t11 B\tJust now\t30 days\t\nRestore"
+ ],
+ [
+  "trash restore",
+  {
+   "toasts": [
+    "Restored to /users/maya/inbox/reports/renamed.txt"
+   ],
+   "after": "Nothing in the trash."
+  }
+ ],
+ [
+  "share",
+  "Who can open inbox\n/users/maya/inbox\nMO\nMaya Okafor\nFrom /users/maya · 3 min\nOwner\nAdmins\nOwner everywhere by system role\nOwner\nJL\nJonas Lindqvist\nSet on this folder · Just now\nViewer\nADD ACCESS\nGroup\nPerson\nViewer\nEditor\nOwner\nShare\n\nApplies to this folder and everything inside it. Viewer can open and download. Editor can also save, rename and delete. Owner can also share."
+ ],
+ [
+  "remove buttons",
+  [
+   "Remove jonas"
+  ]
+ ],
+ [
+  "unshare",
+  {
+   "toasts": [
+    "jonas can now open /users/maya/inbox",
+    "Removed jonas"
+   ],
+   "dlg": "Who can open inbox\n/users/maya/inbox\nMO\nMaya Okafor\nFrom /users/maya · 3 min\nOwner\nAdmins\nOwner everywhere by system role\nOwner\nADD ACCESS\nGroup\nPerson\nViewer\nEditor\nOwner\nShare\n\nApplies to this folder and everything inside it. Viewer can open and download. Editor can also save, rename and delete. Owner can also share."
+  }
+ ],
+ [
+  "search",
+  "Name\nSaved by\nFrom\nSize\nModified\nSVG\nprobe.svg\n/users/maya/inbox\nMaya Okafor\nUpload\n262 B\nJust now\nHTML\nprobe.html\n/users/maya/inbox\nMaya Okafor\nUpload\n836 B\nJust now"
+ ],
+ [
+  "search none",
+  "Name\nSaved by\nFrom\nSize\nModified\nNo files match “zzzz” here."
+ ],
+ [
+  "console",
+  [
+   "[error] http://localhost:8098/files?path=%2Fusers%2Fmaya%2Finbox&file=%2Fusers%2Fmaya%2Finbox%2Fprobe.html :: Connecting to 'http://localhost:8098/api/auth/me' violates the following Content Security Policy directive: \"connect-src 'none'\". The action has been blocked.",
+   "[error] http://localhost:8098/files?path=%2Fusers%2Fmaya%2Finbox&file=%2Fusers%2Fmaya%2Finbox%2Fprobe.html :: Fetch API cannot load http://localhost:8098/api/auth/me. Refused to connect because it violates the document's Content Security Policy."
+  ]
+ ]
+]

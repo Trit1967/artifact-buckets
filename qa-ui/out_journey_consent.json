@@ -1,0 +1,142 @@
+[
+ [
+  "A login page",
+  {
+   "url": "http://localhost:8098/login?next=%2Foauth%2Fauthorize%3Fclient_id%3Dabc_eVe7p-6jI2qmzHcKi9SMeg%26redirect_uri%3Dhttp%253A%252F%252F127.0.0.1%253A33418%252Fcallback%26response_type%3Dcode%26state%3Dst-A%26code_challenge%3DO-oFaXl70Mtq5XjZ-F4rAPPDUfQgfQA9-Pdullza8so%26code_challenge_method%3DS256",
+   "h1": "Sign in to connect Claude Code"
+  }
+ ],
+ [
+  "A consent",
+  {
+   "url": "http://localhost:8098/consent?client_id=abc_eVe7p-6jI2qmzHcKi9SMeg&redirect_uri=http%3A%2F%2F127.0.0.1%3A33418%2Fcallbac",
+   "text": "Connect Claude Code to Artifact Buckets?\n\nSigned in as Jonas Lindqvist. Claude Code is waiting on this computer (port 33418).\n\nSave files to /users/jonas and to team folders you can edit\nFind, open, move, rename and delete files you have access to\nShare your folders, the same as you can on the web\nName this computer\n\nIt shows under Connect Claude Code, where you can disconnect it at any time. The sign-in lasts 30 days of use.\n\nCancel\nConnect"
+  }
+ ],
+ [
+  "A after connect",
+  {
+   "url": "http://127.0.0.1:33418/callback?code=5jCWtROpayRrQuD_sBhp9ARc1DBUp1oS2_Q8-wPtSA4&state=st-A",
+   "bag": [],
+   "body": "callback ok"
+  }
+ ],
+ [
+  "A callback",
+  {
+   "url": "http://127.0.0.1:33418/callback",
+   "state": "st-A",
+   "hasCode": true
+  }
+ ],
+ [
+  "A token exchange",
+  {
+   "status": 200,
+   "keys": [
+    "access_token",
+    "token_type",
+    "expires_in",
+    "refresh_token",
+    "scope"
+   ]
+  }
+ ],
+ [
+  "B consent direct",
+  true
+ ],
+ [
+  "B cancel callback",
+  "http://127.0.0.1:33418/callback?error=access_denied&state=st-B"
+ ],
+ [
+  "C enter key result",
+  "http://127.0.0.1:33418/callback?error=access_denied&state=st-C"
+ ],
+ [
+  "D consent text for https redirect",
+  "Connect Claude Code to Artifact Buckets?\n\nSigned in as Jonas Lindqvist. Claude Code is waiting on this computer.\n\nSave files to /users/jonas and to team folders you can edit\nFind, open, move, rename and delete files you have access to\nShare your folders, the same as you can on the web\nName this computer\n\nIt shows under Connect Claude Code, where you can disconnect it at any time. The sign-in lasts 30 days of use.\n\nCancel\nConnect"
+ ],
+ [
+  "D after connect",
+  "http://127.0.0.1:33418/callback?error=access_denied&state=st-C"
+ ],
+ [
+  "E bare consent",
+  "Connect Claude Code to Artifact Buckets?\n\nSigned in as Jonas Lindqvist. Claude Code is waiting on this computer.\n\nSave files to /users/jonas and to team folders you can edit\nFind, open, move, rename and delete files you have access to\nShare your folders, the same as you can on the web\nName this computer\n\nIt shows under Connect Claude Code, where you can disconnect it at any time. The sign-in lasts 30 days of use.\n\nCancel\nConnect"
+ ],
+ [
+  "E submit bare",
+  {
+   "url": "http://localhost:8098/oauth/approve",
+   "body": "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"client_id\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"body\",\"redirect_uri\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc"
+  }
+ ],
+ [
+  "F devices",
+  "Your connected computers\n1 connected\nQA laptop <img src=x onerror=window.__xss=9>\nConnected Just now · last used not yet · stays signed in until Dec 13, 05:32 AM unless unused\nDisconnect"
+ ],
+ [
+  "F mcp before disconnect",
+  200
+ ],
+ [
+  "F after disconnect",
+  {
+   "toast": [
+    "Disconnected QA laptop <img src=x onerror=window.__xss=9>"
+   ],
+   "list": "Your connected computers\n0 connected\nNo computers yet. Follow the steps above and this list fills in.",
+   "mcp": 401
+  }
+ ],
+ [
+  "H after sign out",
+  "http://localhost:8098/login"
+ ],
+ [
+  "H me after sign out",
+  null
+ ],
+ [
+  "H redirect to login",
+  "http://localhost:8098/login?next=%2Fgroups%3Fid%3D1"
+ ],
+ [
+  "H wrong password",
+  "That username and password don’t match an active account."
+ ],
+ [
+  "H back after sign in",
+  "http://localhost:8098/groups?id=1"
+ ],
+ [
+  "I next=//evil.example/x",
+  "http://localhost:8098/files"
+ ],
+ [
+  "I next=https://evil.example",
+  "http://localhost:8098/files"
+ ],
+ [
+  "I next=/\\evil.example",
+  "http://localhost:8098/login?next=%2F%5Cevil.example"
+ ],
+ [
+  "I next=/oauth/../\\evil.example",
+  "http://localhost:8098//evil.example"
+ ],
+ [
+  "xss",
+  null
+ ],
+ [
+  "console",
+  [
+   "[error] http://localhost:8098/oauth/approve :: Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+   "[error] http://localhost:8098/login?next=%2Fgroups%3Fid%3D1 :: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+   "[pageerror] http://localhost:8098/login?next=%2F%5Cevil.example :: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://evil.example/' cannot be created in a document with origin 'http://localhost:8098' and URL 'http://localhost:8098/login?next=%2F%5Cevil.example'."
+  ]
+ ]
+]

@@ -1,0 +1,16 @@
+# Lab prototype overrides: plain HTTP on port 80 of the VM (the lab host forwards a port to it),
+# no TLS and no domain-joined share yet. Use with:
+#   docker compose -f docker-compose.yml -f deploy/lab/compose.lab.yml up -d
+services:
+  caddy:
+    ports: !override ["80:80"]
+    volumes: !override
+      - ./deploy/lab/Caddyfile.lab:/etc/caddy/Caddyfile:ro
+  app:
+    environment:
+      AB_BASE_URL: ${AB_PUBLIC_URL}
+      AB_SECURE_COOKIES: "false"
+      AB_ZFS_SOCKET: /run/buckets/zfs.sock
+    volumes:
+      - /run/buckets:/run/buckets
+    group_add: ["1500"]

@@ -1,0 +1,18 @@
+#cloud-config
+# Artifact Buckets lab VM. vm-create.sh fills in SSH_KEY.
+hostname: buckets
+fqdn: buckets.lab
+users:
+  - name: ubuntu
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - SSH_KEY
+package_update: true
+packages: [docker.io, docker-compose-v2, zfsutils-linux, acl, attr, python3]
+growpart: { mode: auto, devices: ["/"] }
+runcmd:
+  - [systemctl, enable, --now, docker]
+  - [touch, /var/lib/cloud/instance/buckets-ready]

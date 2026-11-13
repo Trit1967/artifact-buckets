@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "artifact-buckets": {
+      "type": "http",
+      "url": "${ARTIFACT_BUCKETS_URL:-https://buckets.lab.local}/mcp"
+    }
+  }
+}

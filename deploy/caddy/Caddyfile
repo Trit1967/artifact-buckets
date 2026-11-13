@@ -1,0 +1,22 @@
+{
+	admin off
+}
+
+# AB_TLS_MODE=files uses the lab's certificate mounted at /certs (fullchain.pem, privkey.pem).
+# AB_TLS_MODE=internal (default) uses Caddy's own CA; trust its root on clients for testing.
+(tls-files) {
+	tls /certs/fullchain.pem /certs/privkey.pem
+}
+(tls-internal) {
+	tls internal
+}
+
+{$AB_HOSTNAME} {
+	import tls-{$AB_TLS_MODE:internal}
+	encode zstd gzip
+	request_body {
+		max_size 700MB
+	}
+	reverse_proxy app:8080
+	header -Server
+}

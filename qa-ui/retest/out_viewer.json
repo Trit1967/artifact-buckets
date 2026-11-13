@@ -1,0 +1,326 @@
+{
+ "kind hostile.md": {
+  "article": true,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Preview",
+   "Source"
+  ],
+  "firstText": "Hostile <script>window.__xss=1</script> heading | <script>window.__xss=2</script>"
+ },
+ "kind data.csv": {
+  "article": false,
+  "csvRows": 4,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Preview",
+   "Source"
+  ],
+  "firstText": "\tid\tname\tamount\tnote | 1\t1\tAlpha\t1200.50\tmulti, comma | 2\t2\tQuote \"inside\"\t-30\t=HYPE"
+ },
+ "kind data.json": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 12,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Formatted",
+   "Source"
+  ],
+  "firstText": "1\t{ | 2\t  \"big\": 12345678901234567890, | 3\t  \"f\": 1.10, | 4\t  \"s\": \"<img src=x onerror"
+ },
+ "kind script.py": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 6,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [],
+  "firstText": "1\tdef f(x): | 2\t    return \"<script>window.__xss=21</script>\" | 3\t  | 4\t  | 5\tprint(f(1)"
+ },
+ "kind page.html": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": {
+   "sandbox": "allow-scripts",
+   "src": "/preview/eyJwIjoiL3VzZXJzL21he"
+  },
+  "placeholder": null,
+  "toggles": [
+   "Preview",
+   "Source"
+  ],
+  "firstText": ""
+ },
+ "kind pic.svg": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": {
+   "sandbox": "allow-scripts",
+   "src": "/preview/eyJwIjoiL3VzZXJzL21he"
+  },
+  "placeholder": null,
+  "toggles": [],
+  "firstText": ""
+ },
+ "kind pic.png": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": true,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [],
+  "firstText": ""
+ },
+ "kind doc.pdf": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": {
+   "sandbox": null,
+   "src": "/preview/eyJwIjoiL3VzZXJzL21he"
+  },
+  "placeholder": null,
+  "toggles": [],
+  "firstText": ""
+ },
+ "kind big.csv": {
+  "article": false,
+  "csvRows": 499,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Preview",
+   "Source"
+  ],
+  "firstText": "\ta\tb | 1\t0\t0 | 2\t1\t2 | 3\t2\t4 | 4\t3\t6 | 5\t4\t8 | 6\t5\t10 | 7\t6\t12 | 8\t7\t14 | 9\t8\t16 | 10\t9\t18 | 11\t10\t20 | "
+ },
+ "kind huge.txt": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": ".txt | This file is too large to show here. | Download 2.0 MB",
+  "toggles": [],
+  "firstText": ".txt | This file is too large to show here. | Download 2.0 MB"
+ },
+ "kind blob.bin": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": ".bin | There’s no preview for this kind of file. | Download 1.0 KB",
+  "toggles": [],
+  "firstText": ".bin | There’s no preview for this kind of file. | Download 1.0 KB"
+ },
+ "kind noext": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": ".file | There’s no preview for this kind of file. | Download 29 B",
+  "toggles": [],
+  "firstText": ".file | There’s no preview for this kind of file. | Download 29 B"
+ },
+ "kind bad.json": {
+  "article": false,
+  "csvRows": 0,
+  "codeLines": 1,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Formatted",
+   "Source"
+  ],
+  "firstText": "1\t{\"unterminated\": "
+ },
+ "kind empty.md": {
+  "article": true,
+  "csvRows": 0,
+  "codeLines": 0,
+  "img": false,
+  "iframe": null,
+  "placeholder": null,
+  "toggles": [
+   "Preview",
+   "Source"
+  ],
+  "firstText": ""
+ },
+ "hostile md": {
+  "scripts": 0,
+  "onAttrs": [],
+  "hrefs": [
+   "https://ok.example/\"",
+   "https://ok.example/*a",
+   "https://ok.example/_x_"
+  ],
+  "tags": "H1,P,A,EM,SPAN,STRONG,CODE,BLOCKQUOTE,PRE,TABLE,THEAD,TR,TH,TBODY,TD,UL,LI",
+  "blockquotes": 2,
+  "quoteText": "quote level 1 &lt;img src=x onerror=window.__xss=12&gt;\n\nnested quote <b>bold?</b>\n\nthird level q",
+  "tableCells": [
+   "&lt;img src=x onerror=window.__xss=15&gt;",
+   "t"
+  ],
+  "emInsideAttr": [],
+  "para": [
+   "js link JS upper entity js data link</script>) vb proto-rel attr break star in url and later b text [image: img onerror] bold link em <img src=x onerror=window.__xss=11>",
+   "Literal &amp; and &lt;tag&gt; in a paragraph, and an email <mailto:a@b.c>."
+  ]
+ },
+ "hostile md in Files side panel: __xss / dangerous nodes": [
+  null,
+  0
+ ],
+ "toggle hostile.md": {
+  "src": {
+   "lines": 36,
+   "first": "# Hostile <script>window.__xss=1</script> heading"
+  },
+  "back": true
+ },
+ "toggle data.csv": {
+  "src": {
+   "lines": 7,
+   "first": "id,name,amount,note"
+  },
+  "back": true
+ },
+ "toggle data.json": {
+  "src": {
+   "lines": 1,
+   "first": "{\"big\": 12345678901234567890, \"f\": 1.10, \"s\": \"<img src=x on"
+  },
+  "back": 12
+ },
+ "json source contains big int verbatim": true,
+ "toggle page.html": {
+  "src": {
+   "lines": 1,
+   "first": "<!doctype html><h1 id=h>HTML artifact</h1><script>document.g"
+  },
+  "back": true
+ },
+ "json formatted view big int": {
+  "exact": true,
+  "shown": "\"big\": 12345678901234567890",
+  "float": "\"f\": 1.10"
+ },
+ "mode after navigating to another file": "Preview",
+ "html iframe content": {
+  "title": "page.html · Artifact Buckets",
+  "inner": "script ran: cookie=blocked:SecurityError\nparent:SecurityError"
+ },
+ "svg": {
+  "title": "pic.svg · Artifact Buckets"
+ },
+ "pdf preview response": {
+  "status": 200,
+  "type": "application/pdf",
+  "csp": "sandbox allow-scripts; default",
+  "iframeSandboxAttr": null
+ },
+ "versions rail": "",
+ "after restoring oldest from viewer": {
+  "url": "http://localhost:8096/view?path=%2Fusers%2Fmaya%2Finbox%2Fviewer%2Fscript.py",
+  "ver": "v4",
+  "code": "1\tdef f(x):\n2\t    return \"<script>window.__xss=21</script>\"\n"
+ },
+ "Esc from viewer ->": {
+  "url": "http://localhost:8096/files?path=/users/maya/inbox/viewer&file=/users/maya/inbox/viewer/data.csv",
+  "selected": "data.csv"
+ },
+ "Esc with share dialog open -> stays on viewer": true,
+ "Esc in rename dialog input -> dialog closed, still on viewer": {
+  "url": true,
+  "dialog": 0
+ },
+ "Esc with focus inside the HTML preview iframe": "stays on viewer",
+ "Back after Esc": "http://localhost:8096/view?path=/users/maya/inbox/viewer/data.csv",
+ "clipboard after Open in Claude Code": "/buckets-open /users/maya/inbox/viewer/hostile.md",
+ "toast": "Copied. Paste it into Claude Code to pull this file in and edit it.",
+ "clipboard for a path with spaces": "/buckets-open /users/maya/inbox/viewer/my report (final) 'v2'.md",
+ "viewer rename ->": {
+  "url": "http://localhost:8096/view?path=/users/maya/inbox/viewer/ops-renamed.md",
+  "h1": "ops-renamed.md"
+ },
+ "viewer move ->": {
+  "url": "http://localhost:8096/view?path=/users/maya/projects/ops-renamed.md",
+  "h1": "ops-renamed.md"
+ },
+ "viewer rename to ../escape.md": {
+  "toast": "Path may not contain '.' or '..'",
+  "url": "http://localhost:8096/view?path=/users/maya/projects/ops-renamed.md"
+ },
+ "viewer delete dialog": "Move ops-renamed.md to trash?\n\nIt stays in your trash for 30 days, with its versions, and you can restore it from there.\n\nCancel\nMove to trash",
+ "viewer delete ->": {
+  "url": "http://localhost:8096/files?path=/users/maya/projects",
+  "toast": "Moved to trash. You can restore it for 30 days."
+ },
+ "Back after delete lands on": {
+  "url": "http://localhost:8096/view?path=/users/maya/inbox/viewer/my report (final) 'v2'.md",
+  "text": "Home | inbox | viewer | MD | my report (final) 'v2'.md | v1 | Owner | Preview | Source | Open in Claude Code | Share | Dow"
+ },
+ "view (no path)": "No file was given. | Back to your files",
+ "view /users/maya/inbox/viewer": "Home | inbox | viewer | This file doesn’t exist, or you don’t have access to it. | Back to your files",
+ "view /users/jonas/inbox/secret.md": "jonas | inbox | secret.md | This file doesn’t exist, or you don’t have access to it. | Back to your files",
+ "view /users/maya/inbox/viewer/nope.md": "Home | inbox | viewer | nope.md | This file doesn’t exist, or you don’t have access to it. | Back to your files",
+ "view /../../etc/passwd": ".. | .. | etc | passwd | Path may not contain '.' or '..' | Back to your files",
+ "jonas (viewer) on viewer page": {
+  "share": 200,
+  "buttons": [
+   "",
+   "JL\nJonas Lindqvist\nMember",
+   "Preview",
+   "Source",
+   "Open in Claude Code",
+   "Who has access"
+  ],
+  "rows": 4
+ },
+ "390 hostile.md": {
+  "over": 0,
+  "stageH": 591
+ },
+ "390 data.csv": {
+  "over": 0,
+  "stageH": 591
+ },
+ "390 pic.png": {
+  "over": 0,
+  "stageH": 694
+ },
+ "390 page.html": {
+  "over": 0,
+  "stageH": 694
+ },
+ "errors": [
+  "[console] http://localhost:8096/view?path=%2Fusers%2Fmaya%2Fprojects%2Fops-renamed.md Failed to load resource: the server responded with a status of 400 (Bad Request)",
+  "[console] http://localhost:8096/view?path=%2Fusers%2Fmaya%2Finbox%2Fviewer Failed to load resource: the server responded with a status of 404 (Not Found)",
+  "[console] http://localhost:8096/view?path=%2Fusers%2Fjonas%2Finbox%2Fsecret.md Failed to load resource: the server responded with a status of 404 (Not Found)",
+  "[console] http://localhost:8096/view?path=%2Fusers%2Fmaya%2Finbox%2Fviewer%2Fnope.md Failed to load resource: the server responded with a status of 404 (Not Found)",
+  "[console] http://localhost:8096/view?path=%2F..%2F..%2Fetc%2Fpasswd Failed to load resource: the server responded with a status of 400 (Bad Request)"
+ ]
+}

@@ -1,0 +1,13 @@
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	encode zstd gzip
+	request_body {
+		max_size 700MB
+	}
+	reverse_proxy app:8080
+	header -Server
+}

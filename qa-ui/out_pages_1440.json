@@ -1,0 +1,230 @@
+{
+ "admin": {
+  "landed": "/",
+  "pages": {
+   "/files": {
+    "errors": [],
+    "text": "Mine Home Owner Search files Share New folder Upload MINE Home Inbox Projects Trash TEAM FOLDERS design finance platform-eng research PEOPLE diego jonas lena maya priya sam Name Saved by From Size Modified inbox — projects —",
+    "hOverflow": false,
+    "nav": [
+     "Files",
+     "Claude Code saves",
+     "Connect Claude Code",
+     "Overview",
+     "Users",
+     "Groups and access",
+     "Storage",
+     "Directory",
+     "SMB shares",
+     "Audit log"
+    ]
+   },
+   "/trash": {
+    "errors": [],
+    "text": "Trash Deleted files and folders stay here for 30 days with their versions and sharing. As an admin you see everyone’s. Back to files Nothing in the trash.",
+    "hOverflow": false
+   },
+   "/incoming": {
+    "errors": [],
+    "text": "Claude Code saves Everything Claude Code saved across the team, where it went and why. Updates every 15 seconds. Pause saves Saved, last 24 hours 10 by everyone Refused, last 24 hours 1 No access, over quota, too large or paused Largest file accepted 500 MB Per file. Larger ones are refused with a reason. Where saves go Checked in order. The first rule that matches, and that the person can write",
+    "hOverflow": false
+   },
+   "/connect": {
+    "errors": [],
+    "text": "Connect Claude Code Once connected, Claude Code saves what it makes straight into your folders, and can find, organize and share them for you. 1 Install the plugin In Claude Code, run these two commands. The plugin brings the connection and the skills that teach Claude how to use your folders. /plugin marketplace add git.lab.local/tools/claude-plugins Copy /plugin install artifact-buckets@lab-",
+    "hOverflow": false
+   },
+   "/groups": {
+    "errors": [],
+    "text": "Groups and access Groups get roles on folders. A role applies to the folder and everything inside it, and the highest role a person has wins. New group D design 2 people · 2 folders F finance 1 person · 1 folder PE platform-eng 3 people · 3 folders R research 2 people · 1 folder D design Local Product design Team folder Folder access Add folder Folder Role Granted /shared/design Editor 2 min by",
+    "hOverflow": false
+   },
+   "/overview": {
+    "errors": [],
+    "text": "Friday, November 13 Overview 7 days 14 days 30 days Add person People 7 active accounts Files stored 12 13 folders with their own sharing Saved from Claude Code 10 last 14 days Pool capacity 5% 12.3 GB of 252 GB Files saved Claude Code Browser and other 13 Fri, Nov 13 · 10 from Claude Code Oct 31 Nov 2 Nov 4 Nov 6 Nov 8 Nov 10 Nov 12 Nov 13 Storage pool Manage 240 GB free of 252 GB vol-01 Dete",
+    "hOverflow": false
+   },
+   "/users": {
+    "errors": [],
+    "text": "Users Everyone with an account. People from Active Directory arrive by sync; local accounts are for testing and service use. Sync directory Add person Search people Everyone Admins and auditors From AD Suspended 7 of 7 Person Groups Role Storage Last active Status A Administrator admin — Admin 0 B / 50 GB Just now Active You DA Diego Alvarez diego@lab.local design finance Member 0 ",
+    "hOverflow": false
+   },
+   "/storage": {
+    "errors": [],
+    "text": "Storage Every volume mounted under the volumes folder joins one pool. People see one folder tree; files spread across the disks behind it. Add a disk any time; drain one to retire it. Rescan mounts Pool 12.3 GB of 252 GB Single disk (development mode) vol-01 Waiting to join /tmp/abdemo/volumes/vol-01 12.3 GB used 252 GB Mounted Readable Writable Add to pool vol-02 Waiting to join /tmp/abdemo/vol",
+    "hOverflow": false
+   },
+   "/directory": {
+    "errors": [],
+    "text": "Directory People and groups come from Active Directory, read-only. Sign-in in the browser goes through Entra ID; the Windows share uses the domain join. Active Directory Not set up Set these in the app's environment and restart. Use a read-only service account. AB_LDAP_URL=ldaps://dc01.lab.local AB_LDAP_BIND_DN=CN=svc-buckets,OU=Service,DC=lab,DC=local AB_LDAP_BIND_PASSWORD=… AB_LDAP_BASE_DN=D",
+    "hOverflow": false
+   },
+   "/smb": {
+    "errors": [],
+    "text": "SMB shares The same folders, mapped as drives in Windows. Permissions come from the grants in this app and are written to the files, so Explorer shows them as normal NTFS permissions. Re-apply permissions H: home /users/<username> \\\\buckets.lab.local\\home Copy Each person lands in their own folder. Mapped by Group Policy, or by hand with net use H: \\\\buckets.lab.local\\home. S: shared /shared \\\\b",
+    "hOverflow": false
+   },
+   "/audit": {
+    "errors": [],
+    "text": "Audit log Every sign-in, save, open, move, delete, share and admin change, with who did it, from where and through which door. Entries can't be edited. Export CSV Action Any Files Saves Moves and deletes Sharing Sign-ins Claude Code connects Tokens People Groups Denied Person Path starts with Through Any Browser Claude Code API System Search When Person What Through From Nov 13, 05:25 AM admin ",
+    "hOverflow": false
+   },
+   "/nope": {
+    "errors": [],
+    "text": "There's no page here. Go to your files.",
+    "hOverflow": false
+   }
+  }
+ },
+ "maya": {
+  "landed": "/",
+  "pages": {
+   "/files": {
+    "errors": [],
+    "text": "Mine Home Owner Search files Share New folder Upload MINE Home Inbox Projects Trash TEAM FOLDERS platform-eng research SHARED WITH ME priya Name Saved by From Size Modified inbox — projects —",
+    "hOverflow": false,
+    "nav": [
+     "Files",
+     "Claude Code saves",
+     "Connect Claude Code",
+     "My groups"
+    ]
+   },
+   "/trash": {
+    "errors": [],
+    "text": "Trash Deleted files and folders stay here for 30 days with their versions and sharing. Back to files Nothing in the trash.",
+    "hOverflow": false
+   },
+   "/incoming": {
+    "errors": [],
+    "text": "Claude Code saves Everything Claude Code saved for you, where it went and why. Updates every 15 seconds. Saved, last 24 hours 10 team-wide Refused, last 24 hours 1 No access, over quota, too large or paused Largest file accepted 500 MB Per file. Larger ones are refused with a reason. Where saves go Checked in order. The first rule that matches, and that the person can write to, wins. 1 A folder ",
+    "hOverflow": false
+   },
+   "/connect": {
+    "errors": [],
+    "text": "Connect Claude Code Once connected, Claude Code saves what it makes straight into your folders, and can find, organize and share them for you. 1 Install the plugin In Claude Code, run these two commands. The plugin brings the connection and the skills that teach Claude how to use your folders. /plugin marketplace add git.lab.local/tools/claude-plugins Copy /plugin install artifact-buckets@lab-",
+    "hOverflow": false
+   },
+   "/groups": {
+    "errors": [],
+    "text": "My groups Groups get roles on folders. A role applies to the folder and everything inside it, and the highest role a person has wins. PE platform-eng 3 people · 3 folders PE platform-eng Local Platform engineering Team folder Folder access Folder Role Granted /shared/platform-eng Editor 3 min by system /shared/research Viewer 3 min by admin /users/priya/projects/design-system Viewer 3 min by pri",
+    "hOverflow": false
+   },
+   "/overview": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/users": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/storage": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/directory": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/smb": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/audit": {
+    "errors": [],
+    "text": "Only admins and auditors can open this page.",
+    "hOverflow": false
+   },
+   "/nope": {
+    "errors": [],
+    "text": "There's no page here. Go to your files.",
+    "hOverflow": false
+   }
+  }
+ },
+ "lena": {
+  "landed": "/",
+  "pages": {
+   "/files": {
+    "errors": [
+     "[http 404] GET http://localhost:8080/api/fs/list?path=%2Fshared",
+     "[error] http://localhost:8080/files :: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "text": "Mine Home Owner Search files Share New folder Upload MINE Home Inbox Projects Trash Name Saved by From Size Modified inbox — projects —",
+    "hOverflow": false,
+    "nav": [
+     "Files",
+     "Claude Code saves",
+     "Connect Claude Code",
+     "Overview",
+     "Users",
+     "Groups and access",
+     "Storage",
+     "Directory",
+     "SMB shares",
+     "Audit log"
+    ]
+   },
+   "/trash": {
+    "errors": [],
+    "text": "Trash Deleted files and folders stay here for 30 days with their versions and sharing. Back to files Nothing in the trash.",
+    "hOverflow": false
+   },
+   "/incoming": {
+    "errors": [],
+    "text": "Claude Code saves Everything Claude Code saved across the team, where it went and why. Updates every 15 seconds. Saved, last 24 hours 10 by everyone Refused, last 24 hours 1 No access, over quota, too large or paused Largest file accepted 500 MB Per file. Larger ones are refused with a reason. Where saves go Checked in order. The first rule that matches, and that the person can write to, wins. 1",
+    "hOverflow": false
+   },
+   "/connect": {
+    "errors": [],
+    "text": "Connect Claude Code Once connected, Claude Code saves what it makes straight into your folders, and can find, organize and share them for you. 1 Install the plugin In Claude Code, run these two commands. The plugin brings the connection and the skills that teach Claude how to use your folders. /plugin marketplace add git.lab.local/tools/claude-plugins Copy /plugin install artifact-buckets@lab-",
+    "hOverflow": false
+   },
+   "/groups": {
+    "errors": [],
+    "text": "Groups and access Groups get roles on folders. A role applies to the folder and everything inside it, and the highest role a person has wins. D design 2 people · 2 folders F finance 1 person · 1 folder PE platform-eng 3 people · 3 folders R research 2 people · 1 folder D design Local Product design Team folder Folder access Folder Role Granted /shared/design Editor 3 min by system /shared/platfo",
+    "hOverflow": false
+   },
+   "/overview": {
+    "errors": [],
+    "text": "Friday, November 13 Overview 7 days 14 days 30 days People 7 active accounts Files stored 12 13 folders with their own sharing Saved from Claude Code 10 last 14 days Pool capacity 5% 12.3 GB of 252 GB Files saved Claude Code Browser and other 13 Fri, Nov 13 · 10 from Claude Code Oct 31 Nov 2 Nov 4 Nov 6 Nov 8 Nov 10 Nov 12 Nov 13 Storage pool Manage 240 GB free of 252 GB vol-01 Detected, not i",
+    "hOverflow": false
+   },
+   "/users": {
+    "errors": [],
+    "text": "Users Everyone with an account. People from Active Directory arrive by sync; local accounts are for testing and service use. Search people Everyone Admins and auditors From AD Suspended 7 of 7 Person Groups Role Storage Last active Status A Administrator admin — Admin 0 B / 50 GB Just now Active DA Diego Alvarez diego@lab.local design finance Member 0 B / 50 GB 3 min Active JL J",
+    "hOverflow": false
+   },
+   "/storage": {
+    "errors": [],
+    "text": "Storage Every volume mounted under the volumes folder joins one pool. People see one folder tree; files spread across the disks behind it. Add a disk any time; drain one to retire it. Rescan mounts Pool 12.3 GB of 252 GB Single disk (development mode) vol-01 Waiting to join /tmp/abdemo/volumes/vol-01 12.3 GB used 252 GB Mounted Readable Writable vol-02 Waiting to join /tmp/abdemo/volumes/vol-02 ",
+    "hOverflow": false
+   },
+   "/directory": {
+    "errors": [],
+    "text": "Directory People and groups come from Active Directory, read-only. Sign-in in the browser goes through Entra ID; the Windows share uses the domain join. Active Directory Not set up Set these in the app's environment and restart. Use a read-only service account. AB_LDAP_URL=ldaps://dc01.lab.local AB_LDAP_BIND_DN=CN=svc-buckets,OU=Service,DC=lab,DC=local AB_LDAP_BIND_PASSWORD=… AB_LDAP_BASE_DN=D",
+    "hOverflow": false
+   },
+   "/smb": {
+    "errors": [],
+    "text": "SMB shares The same folders, mapped as drives in Windows. Permissions come from the grants in this app and are written to the files, so Explorer shows them as normal NTFS permissions. H: home /users/<username> \\\\buckets.lab.local\\home Copy Each person lands in their own folder. Mapped by Group Policy, or by hand with net use H: \\\\buckets.lab.local\\home. S: shared /shared \\\\buckets.lab.local\\shar",
+    "hOverflow": false
+   },
+   "/audit": {
+    "errors": [],
+    "text": "Audit log Every sign-in, save, open, move, delete, share and admin change, with who did it, from where and through which door. Entries can't be edited. Export CSV Action Any Files Saves Moves and deletes Sharing Sign-ins Claude Code connects Tokens People Groups Denied Person Path starts with Through Any Browser Claude Code API System Search When Person What Through From Nov 13, 05:26 AM lena s",
+    "hOverflow": false
+   },
+   "/nope": {
+    "errors": [],
+    "text": "There's no page here. Go to your files.",
+    "hOverflow": false
+   }
+  }
+ }
+}
