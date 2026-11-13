@@ -8,7 +8,7 @@ There were three layers, and two of them were written by an independent tester w
 
 | Layer | Written by | What it covers | Where |
 |---|---|---|---|
-| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (72 tests) |
+| Build tests | Builder | Core behaviour of each module while it was written, plus a test for each re-test fix | `server/tests/` (74 tests) |
 | Backend QA suite | Independent tester | Every feature line A–I and K in FEATURES.md, through the HTTP API and MCP, including hostile input | `qa/` (210 tests), report `qa/QA_REPORT.md` |
 | UI, plugin and deployment QA | Independent tester | Every page at 1440, 900 and 390 px, for each role; consent and OAuth journeys in a real browser; the Claude Code plugin installed into a real Claude Code; Docker and README steps | `qa-ui/` (Playwright journeys and scripts), report `qa-ui/QA_UI_REPORT.md` |
 | Re-test | Independent tester (fresh run) | Each fixed UI finding re-checked against the fix, plus the new file viewer and Claude Code round-trip | `qa-ui/retest/`, report `qa-ui/retest/RETEST_REPORT.md` |
@@ -17,8 +17,10 @@ There were three layers, and two of them were written by an independent tester w
 
 | Suite | SQLite | PostgreSQL 16 |
 |---|---|---|
-| Build tests (`server/tests`) | 72 / 72 pass | 72 / 72 pass |
-| Backend QA (`qa/`) | 210 / 210 pass | 210 / 210 pass |
+| Build tests (`server/tests`) | 74 / 74 pass | 74 / 74 pass |
+| Backend QA (`qa/`), including auto-sync (`qa/test_m_sync.py`, 120) | 330 / 330 pass | 330 / 330 pass |
+| Sync script tests (`qa-ui/sync/test_sync_sh.py`, live server) | 38 / 38 pass | n/a |
+| Auto-sync and welcome browser journey (`qa-ui/sync/journey_sync.js`, 1440/900/390 px) | 102 / 102 checks | n/a |
 | Docker image build and compose smoke test (`/healthz`, `/view`, `/api/auth/me`) | n/a | pass |
 
 To re-run:
@@ -112,3 +114,7 @@ These depend on infrastructure that doesn't exist in the build container. The co
 - Samba: mounting the share from Windows and macOS, ACLs as seen by real clients, Previous Versions.
 - Storage on real disks: mergerfs today, ZFS at lab deploy (scheduled snapshots, Previous Versions, zfs-send backups, disk health, Add and Replace disk, point-in-time Restore, all behind the Storage page).
 - TLS through Caddy with the lab's certificate, and Claude Code signing in from people's own machines.
+
+## Auto-sync findings (independent tester, 2026-11-13)
+
+Report: `qa-ui/sync/SYNC_QA_REPORT.md`. A dry run of the Windows script on Rob's PC against 6.5 GB of real Claude Code history found that `~/.ssh/config`, files in hidden folders and app data would be copied, and that same-named files collided in the inbox; all fixed and re-checked on the PC. The tester's one high finding (a linked computer could replace a file made on the web, and quota pruning could drop the original) is fixed: sync now saves its copy beside such a file. Medium findings S2, S4, S5, S6, S7, S9, S10 and S11 are fixed, as are low S12, S13, S14, S17, S18 and S22, and the review-only P1–P3. Each has a test that failed before the fix.

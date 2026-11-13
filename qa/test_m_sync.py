@@ -268,8 +268,6 @@ def test_quota(admin, alice, raw):
     assert r.status_code in (413, 507), r.status_code
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S3: a sync token overwrites a file made on the web and quota pruning "
-                                        "throws the original away; the Link page says it can't change anything")
 def test_sync_cannot_destroy_existing_file(admin, alice, raw):
     uid = uid_of(admin, "alice")
     assert admin.patch(f"/api/users/{uid}", json={"quota_bytes": 4000}).status_code == 200
@@ -282,12 +280,13 @@ def test_sync_cannot_destroy_existing_file(admin, alice, raw):
         assert any(v.get("version") == 1 for v in vers.get("versions", [])), vers
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S3: Link page promise 'can't change anything already here' is false")
 def test_sync_cannot_change_files_it_did_not_make(alice, raw):
+    """Fixed S3: the web file stays as it is; the synced copy goes beside it."""
     save(alice, "/users/alice/projects/proj/plan.md", "made on the web")
     tok = link(alice)
     r = put(raw, tok, "plan.md", b"replaced by a computer")
-    assert r.status_code in (403, 409), r.status_code
+    assert r.status_code == 200 and r.json()["path"] != "/users/alice/projects/proj/plan.md", r.text
+    assert alice.get("/api/fs/download", params={"path": "/users/alice/projects/proj/plan.md"}).content == b"made on the web"
 
 
 def test_revoked_token_stops_at_once(alice, raw):
@@ -349,8 +348,6 @@ def test_garbage_and_other_token_kinds_refused(alice, raw):
     assert r.status_code == 401
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S9: x-sync-session is stored unchecked into a String(128) column "
-                                        "(500 on Postgres); should be bounded or refused")
 def test_session_header_is_bounded(alice, raw):
     tok = link(alice)
     r = put(raw, tok, "s.md", raw_headers={"x-sync-session": "s" * 600})
@@ -387,12 +384,12 @@ def test_link_needs_session_and_csrf(alice, raw):
     assert poll(raw, s["poll"])["status"] == "pending"
 
 
-def test_pat_can_read_pending_code_info(alice, raw):
-    """Informational: a personal token (or any signed-in person) can look up any pending code's computer name."""
+def test_pat_can_not_read_pending_code_info(alice, raw):
+    """Fixed S22: only the web session can look up a pending code."""
     s = start(raw, "SECRET-HOSTNAME")
     pat = alice.post("/api/tokens", json={"name": "pat", "days": 1}).json()["token"]
     r = raw.get(f"/api/sync/link/{s['code']}", headers={"authorization": f"Bearer {pat}"})
-    assert r.status_code == 200 and r.json()["computer"] == "SECRET-HOSTNAME"
+    assert r.status_code in (401, 403)
 
 
 def test_code_expires_after_ten_minutes(alice, raw):
@@ -495,7 +492,6 @@ def test_computer_name_cleaned(alice, raw, name, expect):
     assert alice.get(f"/api/sync/link/{s['code']}").json()["computer"] == expect
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S12: other invisible / line-breaking characters survive in computer names")
 @pytest.mark.parametrize("ch", ["\u061c", "\u2028", "\u2029", "\x85", "\u00ad", "\u180e", "\x9b"])
 def test_computer_name_other_invisibles(alice, raw, ch):
     s = start(raw, f"A{ch}B")
@@ -514,8 +510,6 @@ def test_start_cleans_up_old_rows(raw):
         assert db.scalar(select(SyncLink).where(SyncLink.user_code == s["code"])) is None
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S5: linking the same computer again leaves the old sync token working "
-                                        "(two 'computers', the first valid for a year)")
 def test_relink_same_computer_replaces_old_token(alice, raw):
     t1 = link(alice, "LAPTOP")
     t2 = link(alice, "LAPTOP")
@@ -568,7 +562,6 @@ def test_welcome_done_needs_csrf(alice):
 # Race: the token is handed out exactly once even when two polls arrive together
 # ---------------------------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="FINDING S6: racing polls on an approved code each get a sync token")
 def test_concurrent_polls_issue_one_token(alice, app):
     """Uses the in-process app with real threads: two polls racing on an approved code."""
     issued = []
@@ -589,4 +582,4 @@ def test_concurrent_polls_issue_one_token(alice, app):
         [t.join() for t in ts]
         issued.append(sum(1 for r in res if r.get("token")))
     toks = [t for t in alice.get("/api/tokens").json()["tokens"] if t["kind"] == "sync"]
-    assert all(n == 1 for n in issued) and len(toks) == 8, (issued, len(toks))
+    assert all(n == 1 for n in issued) and len(toks) == 1, (issued, len(toks))  # re-linking 'QA-LAPTOP' replaces its link (S5)

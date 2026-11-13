@@ -17,11 +17,12 @@ import base64
 import datetime as dt
 import re
 import secrets
+import unicodedata
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
-from sqlalchemy import DateTime, Integer, String, func, select
+from sqlalchemy import DateTime, Integer, String, func, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import audit, config, fs, paths
@@ -48,6 +49,7 @@ class SyncLink(Base):
     computer: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | approved | denied | done
     user_id: Mapped[int | None] = mapped_column(Integer)
+    ip: Mapped[str | None] = mapped_column(String(64))  # where the computer asked from
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow)
 
 
@@ -69,7 +71,10 @@ def _code() -> str:
 
 
 def _clean_computer(name: str) -> str:
-    name = re.sub(r"[\x00-\x1f\x7f​-‏‪-‮⁠-⁩﻿]", "", name or "").strip()
+    # Drop control, format (bidi, zero-width, soft hyphen...) and line/paragraph separator characters.
+    name = "".join(ch for ch in unicodedata.normalize("NFKC", name or "")
+                   if unicodedata.category(ch) not in ("Cc", "Cf", "Zl", "Zp", "Co", "Cs", "Cn") and ch != "\u180e")
+    name = re.sub(r"\s+", " ", name).strip()
     return (name or "This computer")[:64]
 
 
@@ -87,7 +92,7 @@ class StartBody(BaseModel):
 
 
 @router.post("/link/start")
-def link_start(body: StartBody, db: Session = Depends(get_db)) -> dict[str, Any]:
+def link_start(body: StartBody, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     # Old requests are only useful for ten minutes.
     for old in db.scalars(select(SyncLink).where(SyncLink.created_at < utcnow() - dt.timedelta(hours=1))):
         db.delete(old)
@@ -95,7 +100,8 @@ def link_start(body: StartBody, db: Session = Depends(get_db)) -> dict[str, Any]
     code = _code()
     while db.scalar(select(SyncLink).where(SyncLink.user_code == code)) is not None:
         code = _code()
-    db.add(SyncLink(user_code=code, poll_hash=sha256_hex(poll), computer=_clean_computer(body.computer)))
+    db.add(SyncLink(user_code=code, poll_hash=sha256_hex(poll), computer=_clean_computer(body.computer),
+                    ip=request.client.host if request.client else None))
     db.commit()
     base = config.settings.base_url
     return {"code": code, "poll": poll, "link": f"{base}/link?code={code}", "interval": 2, "expires_in": LINK_MINUTES * 60}
@@ -115,10 +121,19 @@ def link_poll(body: PollBody, db: Session = Depends(get_db)) -> dict[str, Any]:
     u = db.get(User, row.user_id)
     if u is None or u.status != "active":
         return {"status": "denied"}
+    # Hand the token out once, even when two polls arrive together.
+    won = db.execute(update(SyncLink).where(SyncLink.id == row.id, SyncLink.status == "approved").values(status="done"))
+    if won.rowcount != 1:
+        db.rollback()
+        return {"status": "done"}
     home = f"/users/{u.username}"
-    raw, tok = issue_token(db, u, name=f"Sync on {row.computer}", kind="sync", scope="write",
+    name = f"Sync on {row.computer}"
+    # Linking the same computer again replaces its earlier link.
+    for old in db.scalars(select(Token).where(Token.user_id == u.id, Token.kind == "sync", Token.name == name,
+                                              Token.revoked.is_(False))):
+        old.revoked = True
+    raw, tok = issue_token(db, u, name=name, kind="sync", scope="write",
                            folders=[f"{home}/projects", f"{home}/inbox"], ttl=dt.timedelta(days=TOKEN_DAYS))
-    row.status = "done"
     audit.log(db, None, "sync.link", row.computer, via="api", user=u.username)
     db.commit()
     return {"status": "approved", "token": raw, "user": u.username, "home": home, "server": config.settings.base_url,
@@ -169,6 +184,27 @@ def destination(username: str, where: str, project: str, rel: str) -> str:
     return dest
 
 
+def _mine(f: File | None, uid: int) -> bool:
+    return f is None or (f.source == "sync" and f.saved_by == uid)
+
+
+def _own_place(db: Session, uid: int, dest: str, computer: str) -> str:
+    """Sync only adds files: it may update a file it put there itself, but never replaces one the person
+    (or anyone) made another way. That file stays as it is and the synced copy goes beside it."""
+    if _mine(fs.file_row(db, dest), uid):
+        return dest
+    folder, name = dest.rsplit("/", 1)
+    stem, dot, ext = name.rpartition(".")
+    if not stem:
+        stem, dot, ext = name, "", ""
+    tag = re.sub(r"[^\w .-]", "", computer).strip() or "this computer"
+    for n in range(1, 100):
+        cand = f"{folder}/{stem} (from {tag}{'' if n == 1 else f' {n}'}){dot}{ext}"
+        if _mine(fs.file_row(db, cand), uid):
+            return cand
+    raise BadRequest("Too many copies of this file already")
+
+
 @router.put("/file")
 async def put_file(request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     actor = _sync_actor(request, db)
@@ -179,8 +215,11 @@ async def put_file(request: Request, db: Session = Depends(get_db)) -> dict[str,
     dest = destination(actor.user.username, where, project, rel)
     data = await request.body()
     computer = actor.token.name.removeprefix("Sync on ") if actor.token else ""
-    info = fs.save_file(db, actor, dest, data, fs.SaveMeta(source="sync", project=project or None,
-                                                          session_id=(h.get("x-sync-session") or None)))
+    dest = _own_place(db, actor.user.id, dest, computer)
+    session_id = h.get("x-sync-session") or None
+    if session_id and not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", session_id):
+        session_id = None
+    info = fs.save_file(db, actor, dest, data, fs.SaveMeta(source="sync", project=project or None, session_id=session_id))
     if not info.get("unchanged"):
         f = fs.file_row(db, dest)
         if f is not None and computer:
@@ -198,9 +237,14 @@ def _web_actor(request: Request, db: Session) -> Actor:
 
 @router.get("/link/{code}")
 def link_info(code: str, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
-    _web_actor(request, db)
+    actor = _web_actor(request, db)
+    if actor.via != "web":
+        raise Forbidden("Approve this in the web app")
     row = _link_row(db, code)
-    return {"code": row.user_code, "computer": row.computer, "status": row.status}
+    here = request.client.host if request.client else None
+    return {"code": row.user_code, "computer": row.computer, "status": row.status,
+            "same_network": bool(row.ip and here and row.ip == here), "from_ip": row.ip,
+            "age_seconds": int((utcnow() - row.created_at).total_seconds())}
 
 
 @router.post("/link/{code}/{decision}")
@@ -241,7 +285,7 @@ def status(request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
                                                          Token.revoked.is_(False)).order_by(Token.created_at.desc()))]
     q = select(File).where(File.saved_by == uid, File.source == "sync")
     total = db.scalar(select(func.count()).select_from(q.subquery())) or 0
-    size = db.scalar(select(func.coalesce(func.sum(File.size), 0)).where(File.saved_by == uid, File.source == "sync")) or 0
+    size = int(db.scalar(select(func.coalesce(func.sum(File.size), 0)).where(File.saved_by == uid, File.source == "sync")) or 0)
     home = f"/users/{actor.user.username}"
     groups: dict[str, dict[str, Any]] = {}
     for p, sz in db.execute(select(File.path, File.size).where(File.saved_by == uid, File.source == "sync")):

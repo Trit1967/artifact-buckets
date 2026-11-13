@@ -71,6 +71,9 @@
         <h1>Let <span class="name">{info.computer}</span> sync to your folders?</h1>
         <p class="muted">Signed in as <b>{session.user.display_name}</b>. Check that the computer shows the same code.</p>
       </div>
+      {#if !info.same_network}
+        <div class="foreign"><Icon name="alert" /><span>This request came from another network address{info.from_ip ? ` (${info.from_ip})` : ''}, not from this browser’s. Allow it only if you started it yourself, on your own computer, just now.</span></div>
+      {/if}
       <div class="code mono" aria-label={`Code ${info.code}`}>
         {#each chars as ch}{#if ch === '-'}<span class="sep"></span>{:else}<span class="ch">{ch}</span>{/if}{/each}
       </div>
@@ -104,6 +107,8 @@
   .code { display: flex; align-items: center; gap: 6px; padding: 16px; border-radius: 12px; background: #0F1012; border: 1px solid var(--line); justify-content: center; }
   .ch { width: 36px; height: 46px; border-radius: 8px; background: var(--raise); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 22px; font-weight: 500; color: var(--amber-hi); }
   .sep { width: 10px; height: 2px; border-radius: 2px; background: var(--line-hover); margin: 0 4px; }
+  .foreign { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--red-bg); border: 1px solid #5A2E24; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+  .foreign :global(.ic) { color: var(--red); flex: none; margin-top: 1px; }
   .can { list-style: none; margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.45; }
   .can li { display: flex; gap: 10px; align-items: flex-start; }
   .can :global(.ic) { color: var(--green); margin-top: 1px; flex: none; }

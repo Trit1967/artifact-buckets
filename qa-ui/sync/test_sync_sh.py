@@ -149,9 +149,9 @@ def server_files(w, folder):
         r = w.get("/api/fs/list", params={"path": f})
         if r.status_code != 200:
             continue
-        for e in r.json().get("items", r.json().get("entries", [])):
-            p = e.get("path") or f"{f}/{e['name']}"
-            (todo if e.get("type") in ("folder", "dir") else out).append(p)
+        j = r.json()
+        todo += [e["path"] for e in j.get("folders", [])]
+        out += [e["path"] for e in j.get("files", [])]
     return sorted(out)
 
 
@@ -214,7 +214,9 @@ def test_places_project_plain_folder_and_inbox(home, member):
     assert f"{u}/projects/{home.project}/src/deep/ünï cødé ✓.md" in got
     assert f"{u}/projects/{home.project}-plain/it's here.txt" in got
     inbox = server_files(member, f"{u}/inbox")
-    assert f"{u}/inbox/loose-{home.project}.md" in inbox and f"{u}/inbox/out-{home.project}.md" in inbox
+    # M2 (148f7f0): the inbox keeps the path relative to HOME.
+    assert f"{u}/inbox/loose-{home.project}.md" in inbox, inbox
+    assert f"{u}/inbox/work/elsewhere/out-{home.project}.md" in inbox, inbox
     meta = member.get("/api/fs/meta", params={"path": f"{u}/projects/{home.project}/docs/report one.md"}).json()
     assert meta.get("source") == "sync" and meta.get("project") == home.project
 
@@ -251,14 +253,13 @@ def test_skips(home, member):
     assert r.returncode == 0 and "Done: 1 copied." in r.stdout, r.stdout
     plan = open(os.path.join(home.dir, "state", "plan.tsv")).read()
     for rel, why in skip.items():
-        assert f"skip\t{why}\t{os.path.join(repo, rel)}" in plan, (rel, why)
+        whys = (why, "hidden") if rel.startswith(".") else (why,)  # dot-names are now caught as hidden first
+        assert any(f"skip\t{w}\t{os.path.join(repo, rel)}" in plan for w in whys), (rel, why)
     assert "only-read.md" not in plan  # Read results are not candidates at all
     assert server_files(member, f"/users/{MEMBER[0]}/projects/{home.project}") == [
         f"/users/{MEMBER[0]}/projects/{home.project}/keep.md"]
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S1: files in hidden folders outside a project (~/.ssh/config, "
-                                        "~/.kube/config, ~/.docker/config.json, ~/.config/gh/hosts.yml) go to the inbox")
 def test_hidden_folders_outside_a_project_are_skipped(home, member):
     assert home.link()[0] == 0
     repo = os.path.join(home.work, home.project)
@@ -270,10 +271,9 @@ def test_hidden_folders_outside_a_project_are_skipped(home, member):
     home.transcript([(repo, f, "update") for f in leaks])
     r = home.sh("scan")
     assert "Would copy" not in r.stdout, r.stdout
+    assert "Leaving out 4: hidden" in r.stdout, r.stdout
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S2: secret rules are case-sensitive and miss certificates "
-                                        "(.crt/.cer/.der) and Terraform state backups")
 @pytest.mark.parametrize("name", ["SECRET.md", "Prod-SECRETS.yaml", "CREDENTIALS.json", "server.crt", "client.cer",
                                   "ca.der", "terraform.tfstate.backup"])
 def test_secret_names(home, name):
@@ -338,8 +338,6 @@ def test_failures_are_retried(home, member):
     assert "Done: 1 copied." in r.stdout, r.stdout
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S4: a file the server always refuses (aux.md, a:b.md, name ending "
-                                        "in '.') blocks the 'last complete run' marker forever")
 def test_permanently_refused_file_does_not_block_progress(home, member):
     assert home.link()[0] == 0
     repo = os.path.join(home.work, home.project)
@@ -365,20 +363,18 @@ def test_turned_off_mid_run(home, member):
     assert r.returncode == 0 and r.stdout == "" and not os.path.isdir(os.path.join(home.dir, "lock"))
 
 
-def test_inbox_name_collision_keeps_only_last(home, member):
-    """Informational (S8): two different loose files with the same name share one inbox file."""
+def test_inbox_same_name_no_collision(home, member):
+    """M2 (148f7f0): two loose files with the same name land at different inbox paths."""
     assert home.link()[0] == 0
     n = f"notes-{home.project}.md"
     a = home.write(f"{home.home}/a/{n}", "first\n")
     b = home.write(f"{home.home}/b/{n}", "second\n")
     home.transcript([(home.home, a, "create"), (home.home, b, "create")])
     assert "Done: 2 copied." in home.sh("run").stdout
-    vers = member.get("/api/fs/versions", params={"path": f"/users/{MEMBER[0]}/inbox/{n}"}).json()["versions"]
-    assert len(vers) == 2
+    inbox = server_files(member, f"/users/{MEMBER[0]}/inbox")
+    assert f"/users/{MEMBER[0]}/inbox/a/{n}" in inbox and f"/users/{MEMBER[0]}/inbox/b/{n}" in inbox
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S7: re-linking to another account/server keeps sent.tsv, so files "
-                                        "already sent elsewhere are never sent to the new account")
 def test_relink_to_another_account_sends_again(home, member):
     assert home.link()[0] == 0
     repo = os.path.join(home.work, home.project)
@@ -392,8 +388,6 @@ def test_relink_to_another_account_sends_again(home, member):
     assert "Done: 1 copied." in r.stdout, r.stdout
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S10: the sync token is passed on curl's command line, readable by "
-                                        "other local users via ps / /proc")
 def test_token_not_on_command_line(home, member):
     assert home.link()[0] == 0
     bindir = os.path.join(home.root, "bin")
@@ -510,8 +504,6 @@ def test_hook_when_not_linked(home):
     assert not os.path.exists(os.path.join(home.dir, "sync.conf"))
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING S13: the hook creates ~/.artifact-buckets/state on every computer "
-                                        "with the plugin, even when never linked")
 def test_hook_when_not_linked_leaves_no_trace(home):
     run_hook(home)
     assert not os.path.exists(home.dir)
@@ -567,3 +559,88 @@ def test_hook_survives_parent_exit(home, member):
     while time.time() < deadline and len(server_files(member, f"/users/{MEMBER[0]}/projects/{home.project}")) < 15:
         time.sleep(0.5)
     assert len(server_files(member, f"/users/{MEMBER[0]}/projects/{home.project}")) == 15
+
+
+# ---- added for commit 148f7f0: hidden anywhere, app data, own-repo fallback, inbox paths, exclude ----------
+
+def test_hidden_anywhere_in_path(home, member):
+    """A project living under a hidden folder (e.g. ~/.local/src/proj) is skipped entirely, by design (M1)."""
+    proj = os.path.join(home.home, ".local", "src", home.project)
+    f = home.write(f"{proj}/a.md")
+    home.transcript([(proj, f, "create")])
+    home.sh("scan")
+    plan = open(os.path.join(home.dir, "state", "plan.tsv")).read()
+    assert f"skip\thidden\t{f}" in plan
+
+
+def test_library_is_system(home):
+    f = home.write(f"{home.home}/Library/Application Support/App/x.json")
+    home.transcript([(home.home, f, "create")])
+    home.sh("scan")
+    assert f"skip\tsystem\t{f}" in open(os.path.join(home.dir, "state", "plan.tsv")).read()
+
+
+def test_outside_cwd_goes_to_its_own_repo(home, member):
+    assert home.link()[0] == 0
+    cwd = os.path.join(home.work, home.project)
+    os.makedirs(cwd)
+    other = os.path.join(home.work, home.project + "-other")
+    os.makedirs(other)
+    git("init", "-q", other)
+    f = home.write(f"{other}/docs/x.md")
+    home.transcript([(cwd, f, "create")])
+    assert "Done: 1 copied." in home.sh("run").stdout
+    assert server_files(member, f"/users/{MEMBER[0]}/projects/{home.project}-other") == [
+        f"/users/{MEMBER[0]}/projects/{home.project}-other/docs/x.md"]
+
+
+def test_inbox_outside_home_keeps_full_path(home, member):
+    assert home.link()[0] == 0
+    outside = os.path.join(home.root, "outside")  # not under HOME, not under /tmp
+    f = home.write(f"{outside}/y-{home.project}.md")
+    home.transcript([(home.home, f, "create")])
+    assert "Done: 1 copied." in home.sh("run").stdout
+    assert f"/users/{MEMBER[0]}/inbox{outside}/y-{home.project}.md" in server_files(member, f"/users/{MEMBER[0]}/inbox")
+
+
+def test_exclude_command(home, member):
+    assert "No folders excluded" in home.sh("exclude").stdout
+    r = home.sh("exclude", "/does/not/exist")
+    assert r.returncode == 1 and "No such folder" in r.stderr
+    client = os.path.join(home.work, "client-x")
+    a = home.write(f"{client}/secret-plan.txt".replace("secret-", ""), "c\n")
+    b = home.write(f"{home.work}/client-xy/b.md", "d\n")  # prefix of the excluded name: must NOT be excluded
+    home.transcript([(client, a, "create"), (os.path.dirname(b), b, "create")])
+    r = home.sh("exclude", client)
+    assert r.returncode == 0 and client in r.stdout
+    home.sh("exclude", client + "/")  # no duplicate
+    assert open(os.path.join(home.dir, "exclude")).read().count(client) == 1
+    assert client in home.sh("exclude").stdout
+    home.sh("scan")
+    plan = open(os.path.join(home.dir, "state", "plan.tsv")).read()
+    assert f"skip\texcluded\t{a}" in plan and f"send\tprojects\tclient-xy\tb.md" in plan, plan
+    # Hand-written entries: "~/" form and comments.
+    with open(os.path.join(home.dir, "exclude"), "a") as fh:
+        fh.write("# a comment\n~/work/client-xy/\n")
+    home.sh("scan")
+    assert f"skip\texcluded\t{b}" in open(os.path.join(home.dir, "state", "plan.tsv")).read()
+
+
+def test_exclude_relative_and_symlinked_paths(home):
+    real = os.path.join(home.work, "realproj")
+    f = home.write(f"{real}/a.md")
+    link = os.path.join(home.work, "alias")
+    os.symlink(real, link)
+    home.transcript([(real, f, "create")])
+    r = home.sh("exclude", "work/alias", cwd=home.home)
+    assert r.returncode == 0
+    home.sh("scan")
+    plan = open(os.path.join(home.dir, "state", "plan.tsv")).read()
+    # Fixed S14: excluding through a symlink excludes the real folder.
+    assert ("skip\texcluded\t" + f) in plan
+
+
+def test_exclude_root(home):
+    """Fixed S14: excluding / is refused with a pointer to `off`, instead of claiming success."""
+    r = home.sh("exclude", "/")
+    assert r.returncode != 0 and "off" in (r.stdout + r.stderr)
