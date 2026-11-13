@@ -338,6 +338,7 @@ if ($CaUrl) {
     if ($sha -ne $CaSha) { Stop-Setup "The server's certificate didn't match what was expected. Nothing was changed."; return }
     if (-not (Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Thumbprint -eq $cert.Thumbprint })) {
       Step "Trusting the server's certificate (valid for this server only). Windows will ask you to confirm: choose Yes."
+      Step "(The Security Warning box can open behind this window. If nothing shows, press Alt+Tab.)"
       Import-Certificate -FilePath $ca -CertStoreLocation Cert:\CurrentUser\Root -ErrorAction Stop | Out-Null
     }
     # Claude Code also reads NODE_EXTRA_CA_CERTS; set it for new windows too, unless it's already in use.
