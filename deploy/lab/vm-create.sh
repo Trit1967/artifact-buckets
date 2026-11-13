@@ -29,11 +29,13 @@ basepath=$(virsh vol-path --pool "$POOL" "$BASE")
 virsh vol-create-as "$POOL" "$NAME.qcow2" 20G --format qcow2 --backing-vol "$basepath" --backing-vol-format qcow2
 
 ud=$(mktemp); sed "s|SSH_KEY|$KEY|" "$HERE/user-data.yaml" > "$ud"
+# cloud-init ignores a seed disk without meta-data, so give it one.
+md=$(mktemp); printf 'instance-id: %s-%s\nlocal-hostname: buckets\n' "$NAME" "$(date +%s)" > "$md"
 virt-install --name "$NAME" --memory 3072 --vcpus 2 --cpu host-passthrough \
   --disk vol="$POOL/$NAME.qcow2",bus=virtio \
   --os-variant ubuntu24.04 --network network=default,model=virtio \
-  --cloud-init user-data="$ud" --graphics none --noautoconsole --import
-rm -f "$ud"
+  --cloud-init user-data="$ud",meta-data="$md" --graphics none --noautoconsole --import
+rm -f "$ud" "$md"
 echo "Waiting for an address..."
 for i in $(seq 1 60); do
   ip=$(virsh domifaddr "$NAME" 2>/dev/null | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')

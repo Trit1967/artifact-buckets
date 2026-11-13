@@ -20,7 +20,8 @@ mkdir -p ~/artifact-buckets && tar -xzf ab-lab.tar.gz -C ~/artifact-buckets && c
 VM=192.168.122.xx
 scp ab-lab.tar.gz ubuntu@$VM:
 ssh ubuntu@$VM 'mkdir -p ab && tar -xzf ab-lab.tar.gz -C ab && cd ab && sudo ./deploy/lab/vm-setup.sh http://<lab host IP>:8090'
-docker run -d --name artifact-buckets-forward --restart unless-stopped --network host \
+# Publish the port through Docker (as other lab apps do) so the host firewall lets the LAN in.
+docker run -d --name artifact-buckets-forward --restart unless-stopped -p 8090:8090 \
   alpine/socat tcp-listen:8090,fork,reuseaddr tcp:$VM:80
 ```
 
@@ -33,5 +34,6 @@ The setup script prints the admin password. Demo data (optional):
 docker rm -f artifact-buckets-forward
 virsh destroy artifact-buckets; virsh undefine artifact-buckets --remove-all-storage
 virsh vol-delete --pool default ab-noble-base.img
-rm -rf ~/artifact-buckets
+rm -rf ~/artifact-buckets ~/.ssh/artifact-buckets
+docker rmi alpine/socat     # optional
 ```
