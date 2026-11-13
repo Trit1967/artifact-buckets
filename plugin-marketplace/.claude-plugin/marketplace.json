@@ -1,0 +1,13 @@
+{
+  "name": "artifact-buckets",
+  "owner": { "name": "Artifact Buckets contributors" },
+  "metadata": { "description": "Claude Code plugin for Artifact Buckets." },
+  "plugins": [
+    {
+      "name": "artifact-buckets",
+      "source": "./artifact-buckets",
+      "description": "Save what Claude Code makes into Artifact Buckets, the team file manager, and find, organize and share it.",
+      "version": "0.4.0"
+    }
+  ]
+}

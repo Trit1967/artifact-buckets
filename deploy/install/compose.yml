@@ -1,0 +1,66 @@
+# Artifact Buckets: the compose file the one-line installer uses (install.sh copies it to the install
+# folder as compose.yml). Everything it keeps lives under that folder:
+#   .env          settings and secrets (made by the installer, mode 600)
+#   Caddyfile     HTTPS front end (made by the installer)
+#   data/tree     everyone's files
+#   data/db       the database
+#   data/caddy    certificates Caddy fetched or made
+#   data/tls      a self-signed or supplied certificate (when not using Let's Encrypt)
+#   src/          the source the app image is built from when no published image is used
+#
+# Without the installer, from a clone of the repository:
+#   cd deploy/install && cp env.example .env     # fill it in
+#   docker compose up -d --build                  # Caddyfile here: HTTPS from Caddy's own CA or Let's Encrypt
+name: artifact-buckets
+
+services:
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports: ["${AB_HTTP_PORT:-80}:80", "${AB_HTTPS_PORT:-443}:443"]
+    environment:
+      AB_HOSTNAME: ${AB_HOSTNAME:-localhost}
+      AB_TLS: ${AB_TLS:-internal}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/tls:/certs:ro
+      - ./data/caddy:/data
+    depends_on: [app]
+
+  app:
+    image: ${AB_IMAGE:-artifact-buckets/app:local}
+    build: ${AB_SRC:-./src}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      AB_DATABASE_URL: postgresql+psycopg://buckets:${POSTGRES_PASSWORD}@db:5432/buckets
+      AB_SECURE_COOKIES: "true"
+      AB_TREE_ROOT: /data/tree
+      AB_VOLUMES_ROOT: /data/volumes
+      AB_STORAGE_MODE: direct
+    volumes:
+      - ./data/tree:/data/tree
+      - ./data/volumes:/data/volumes
+      - ./data/tls/public:/certs:ro     # only the public certificate; the key stays with Caddy
+      - ./data/run:/run/buckets         # the ZFS helper's socket, when ZFS is used
+    group_add: ["${AB_ZFS_GID:-1500}"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buckets
+      POSTGRES_DB: buckets
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["./data/db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buckets"]
+      interval: 5s
+      retries: 30
