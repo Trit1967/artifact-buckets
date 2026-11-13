@@ -98,19 +98,17 @@ docker compose logs -f app samba
 
 ### 5. Claude Code
 
-1. Push `plugin-marketplace/` to `git.lab.local/tools/claude-plugins`.
-2. If the hostname isn't `buckets.lab.local`, edit the default in `artifact-buckets/.mcp.json`, or have people set `ARTIFACT_BUCKETS_URL`.
-3. Each person installs the plugin in Claude Code:
-   ```
-   /plugin marketplace add https://git.lab.local/tools/claude-plugins.git
-   /plugin install artifact-buckets@lab-tools
-   ```
-4. Then they sign in once (Claude Code doesn't open the browser by itself):
-   - Run `/mcp`, choose **artifact-buckets**, then **Authenticate**.
-   - Sign in in the browser and press **Connect**.
-5. `/buckets-setup` checks the connection.
+The server hands out its own Claude Code plugin, already pointed at its address. There is nothing to host or edit.
 
-To push a setting to everyone, add the marketplace and plugin to managed settings.
+- **Each person:** open **Connect Claude Code** in the web app and paste the one line it shows into PowerShell (Windows) or a terminal (macOS, Linux):
+  ```
+  irm https://buckets.lab.local/claude/install.ps1 | iex
+  curl -fsSL https://buckets.lab.local/claude/install.sh | sh
+  ```
+  It installs the plugin, then opens the browser to sign in once. Running it again is safe.
+- **Every computer at once:** push `https://buckets.lab.local/claude/managed-settings.json` as Claude Code's managed settings (Intune, Group Policy, Jamf; the Connect page shows the paths). Claude Code installs the plugin at its next start and asks each person to sign in once.
+
+Claude Code signs in only over https, with a certificate the computer trusts. Domain-joined PCs trust a certificate from your own certificate authority without any extra step.
 
 ### Demo data
 

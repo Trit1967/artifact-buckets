@@ -20,8 +20,9 @@ RUN --mount=type=secret,id=ca,required=false \
     if [ -f /run/secrets/ca ]; then export PIP_CERT=/run/secrets/ca; fi; pip install -r requirements.txt
 COPY server/app ./app
 COPY server/scripts ./scripts
+COPY plugin-marketplace/artifact-buckets ./plugin
 COPY --from=web /web/dist ./web
-ENV AB_STATIC_DIR=/app/web AB_TREE_ROOT=/data/tree AB_VOLUMES_ROOT=/data/volumes
+ENV AB_STATIC_DIR=/app/web AB_PLUGIN_DIR=/app/plugin AB_TREE_ROOT=/data/tree AB_VOLUMES_ROOT=/data/volumes
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s CMD python3 -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/healthz')"
 # Runs as root inside the container, with every capability dropped except the three it needs to

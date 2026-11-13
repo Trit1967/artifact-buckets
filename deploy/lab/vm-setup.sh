@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Inside the VM, as root, from the unpacked Artifact Buckets folder:  sudo ./deploy/lab/vm-setup.sh <public-url>
-#   e.g. sudo ./deploy/lab/vm-setup.sh http://192.168.1.143:8090
+# Inside the VM, as root, from the unpacked Artifact Buckets folder:  sudo ./deploy/lab/vm-setup.sh <lab host IP>
+#   e.g. sudo ./deploy/lab/vm-setup.sh 192.168.1.143
+# People use https://<lab host IP>:8443 (Caddy's own lab certificate; Claude Code signs in only over https).
+# http://<lab host IP>:8090 only hands out the one-line Claude Code installer and the lab certificate,
+# and sends everything else to https. Safe to run again: it updates an existing install in place.
 # Makes a small ZFS pool on a sparse file (10 GB, takes space only as files arrive), puts the folder tree on it,
 # starts the ZFS helper (automatic restore points) and the app.
 set -euo pipefail
-URL=${1:?give the URL people will use, e.g. http://192.168.1.143:8090}
+IP=${1:?give the lab host IP people reach, e.g. 192.168.1.143}
+IP=${IP#http://}; IP=${IP#https://}; IP=${IP%%[:/]*}
+URL=https://$IP:8443
 HERE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$HERE"
 until [ -e /var/lib/cloud/instance/buckets-ready ]; do echo "waiting for first-boot setup"; sleep 5; done
@@ -50,9 +55,8 @@ systemctl enable --now buckets-pool.service bucketsd.service
 
 mkdir -p /srv/buckets/volumes
 if [ ! -f .env ]; then
-  host=$(echo "$URL" | sed -E 's#^https?://##; s#[:/].*$##')
   cat > .env <<ENV
-AB_HOSTNAME=$host
+AB_HOSTNAME=$IP
 AB_TLS_MODE=internal
 AB_SECRET_KEY=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
@@ -62,11 +66,13 @@ AB_STORAGE_MODE=direct
 AB_ZFS_SOCKET=/run/buckets/zfs.sock
 AB_BOOTSTRAP_ADMIN=admin
 AB_BOOTSTRAP_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-20)
-AB_PUBLIC_URL=$URL
 AB_SMB_ENABLED=false
 ENV
   chmod 600 .env
 fi
+# Addresses (also updates an install made before the lab moved to https).
+sed -i '/^LAB_IP=/d; /^AB_PUBLIC_URL=/d; /^AB_INSTALL_URL=/d' .env
+printf 'LAB_IP=%s\nAB_PUBLIC_URL=%s\nAB_INSTALL_URL=http://%s:8090\n' "$IP" "$URL" "$IP" >> .env
 docker compose -f docker-compose.yml -f deploy/lab/compose.lab.yml up -d --build
 echo
 echo "Up at $URL"

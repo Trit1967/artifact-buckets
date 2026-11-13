@@ -67,8 +67,16 @@ class Settings:
     oidc_client_secret: str | None = field(default_factory=lambda: os.environ.get("AB_OIDC_CLIENT_SECRET"))
     static_dir: str = field(default_factory=lambda: os.environ.get("AB_STATIC_DIR", "../web/dist"))
     background_jobs: bool = field(default_factory=lambda: _bool("AB_BACKGROUND_JOBS", True))
-    # A full git URL: Claude Code reads a bare "host/owner/repo" as a GitHub shorthand and refuses it.
-    plugin_marketplace: str = field(default_factory=lambda: os.environ.get("AB_PLUGIN_MARKETPLACE", "https://git.lab.local/tools/claude-plugins.git"))
+    # The plugin marketplace people add. Empty (the default): this server hands out its own, with its
+    # address built in, at <base_url>/claude/marketplace.json (see claude_dist.py).
+    plugin_marketplace: str = field(default_factory=lambda: os.environ.get("AB_PLUGIN_MARKETPLACE", ""))
+    # The plugin's files, served as a zip with this server's address written into its .mcp.json.
+    plugin_dir: str = field(default_factory=lambda: os.environ.get("AB_PLUGIN_DIR", "../plugin-marketplace/artifact-buckets"))
+    # Where the one-line installers are fetched from, when that differs from base_url (the lab serves
+    # them over plain http so a computer can fetch them before it trusts the lab's own certificate).
+    install_url: str = field(default_factory=lambda: os.environ.get("AB_INSTALL_URL", ""))
+    # A private root certificate the installers should trust (lab only; empty with a real certificate).
+    install_ca_file: str = field(default_factory=lambda: os.environ.get("AB_INSTALL_CA_FILE", ""))
     # Sign-in redirects Claude Code may use. Claude Code always uses a loopback address; other https hosts
     # (for example a web-based client) must be listed here, comma-separated, or registration is refused.
     oauth_redirect_hosts: tuple[str, ...] = field(default_factory=lambda: tuple(

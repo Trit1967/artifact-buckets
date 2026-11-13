@@ -95,9 +95,11 @@ async def register(request: Request) -> Response:
         return JSONResponse({"error": "invalid_redirect_uri",
                              "error_description": "Use http://localhost or https redirect URIs"}, status_code=400)
     name = str(body.get("client_name") or "Claude Code")[:128]
+    # Claude Code names a plugin's connection "Claude Code (plugin:<plugin>:<server>)"; people just see "Claude Code".
+    shown = re.sub(r"\s*\((?:plugin:)?artifact-buckets(?::artifact-buckets)?\)$", "", name) or "Claude Code"
     cid = "abc_" + secrets.token_urlsafe(16)
     with new_session() as db:
-        db.add(OAuthClient(client_id=cid, name=name, redirect_uris=uris))
+        db.add(OAuthClient(client_id=cid, name=shown, redirect_uris=uris))
         db.commit()
     return JSONResponse({"client_id": cid, "client_name": name, "redirect_uris": uris,
                          "grant_types": ["authorization_code", "refresh_token"], "response_types": ["code"],

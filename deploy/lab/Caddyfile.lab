@@ -1,13 +1,34 @@
+# Lab: https with Caddy's own certificate authority (Claude Code only signs in over https), for a bare
+# IP address. Plain http is kept only to hand out the Claude Code installer and the lab certificate.
 {
 	admin off
-	auto_https off
+	auto_https disable_redirects
+	skip_install_trust
+	default_sni {$LAB_IP}
+	pki {
+		ca local {
+			name "Artifact Buckets Lab"
+		}
+	}
 }
 
-:80 {
+https://{$LAB_IP} {
+	tls internal
 	encode zstd gzip
 	request_body {
 		max_size 700MB
 	}
 	reverse_proxy app:8080
+	header -Server
+}
+
+http:// {
+	@installer path /claude/install.ps1 /claude/install.sh /claude/ca.crt
+	handle @installer {
+		reverse_proxy app:8080
+	}
+	handle {
+		redir https://{$LAB_IP}:8443{uri} 308
+	}
 	header -Server
 }

@@ -30,6 +30,8 @@
     } catch (e) { fail(e); }
   }
   const mcpUrl = `${session.base_url}/mcp`;
+  const setup = session.claude || {};
+  let os = $state(/Windows/i.test(navigator.userAgent) ? 'windows' : 'unix');
 </script>
 
 <div class="page">
@@ -40,19 +42,22 @@
   <section class="steps">
     <div class="card step">
       <span class="num mono">1</span>
-      <h2>Install the plugin</h2>
-      <p class="note">In Claude Code, run these two commands. The plugin brings the connection and the skills that teach Claude how to use your folders.</p>
-      <Copy text={`/plugin marketplace add ${session.marketplace}`} />
-      <Copy text="/plugin install artifact-buckets@lab-tools" />
+      <h2>Run one line</h2>
+      <div class="segs os" role="group" aria-label="Your computer">
+        <button class="seg" class:on={os === 'windows'} onclick={() => (os = 'windows')}>Windows</button>
+        <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
+      </div>
+      <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
+      <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}. It adds the Artifact Buckets plugin to Claude Code, already pointed at this server. Running it again is safe.{#if setup.private_ca}{' '}This lab server uses its own certificate, so the first time, {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if}</p>
     </div>
     <div class="card step">
       <span class="num mono">2</span>
       <h2>Sign in once</h2>
-      <p class="note">In Claude Code run <code>/mcp</code>, choose <b>artifact-buckets</b>, then <b>Authenticate</b>. Your browser opens this site; sign in and press <b>Connect</b>. No keys to copy. <code>/buckets-setup</code> checks it worked.</p>
+      <p class="note">Your browser opens this site. Sign in and press <b>Connect</b>. There are no keys to copy, and nothing to type into Claude Code.</p>
       <div class="mock">
-        <div class="row" style="gap:8px"><span class="dot" style="background:var(--amber)"></span><span class="mono" style="font-size:12px">/mcp → artifact-buckets → Authenticate</span></div>
-        <div class="mono note" style="padding-left:16px">Browser: Connect Claude Code to Artifact Buckets? → Connect</div>
-        <div class="mono" style="padding-left:16px;font-size:12px;color:var(--green)">Authentication successful. Connected to artifact-buckets.</div>
+        <div class="mono" style="font-size:12px">Plugin installed</div>
+        <div class="mono note">Opening your browser to sign in…</div>
+        <div class="mono" style="font-size:12px;color:var(--green)">Done. Claude Code can now save to Artifact Buckets.</div>
       </div>
     </div>
     <div class="card step">
@@ -67,11 +72,37 @@
     </div>
   </section>
 
+  {#if session.isAdmin}
+    <section class="card rollout">
+      <div class="hd">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h2>Set up every computer at once</h2>
+          <span class="note">Push this policy with Intune, Group Policy or Jamf. Claude Code installs the plugin by itself at its next start, and people only sign in once when it asks.</span>
+        </div>
+        <a class="btn" href="/claude/managed-settings.json" download="managed-settings.json"><Icon name="download" />Download</a>
+      </div>
+      <div class="ro-body">
+        <pre class="mono policy">{JSON.stringify(setup.managed_settings, null, 2)}</pre>
+        <dl class="where">
+          <dt>Windows</dt><dd class="mono">C:\Program Files\ClaudeCode\managed-settings.json</dd>
+          <dt>Group Policy or Intune</dt><dd>The same JSON as the <span class="mono">Settings</span> value under <span class="mono">HKLM\SOFTWARE\Policies\ClaudeCode</span></dd>
+          <dt>macOS</dt><dd class="mono">/Library/Application Support/ClaudeCode/managed-settings.json</dd>
+          <dt>Linux</dt><dd class="mono">/etc/claude-code/managed-settings.json</dd>
+        </dl>
+        {#if setup.private_ca}<p class="note" style="margin:0">Computers need to trust this server’s certificate first. Domain-joined PCs already trust a certificate from your own certificate authority.</p>{/if}
+      </div>
+    </section>
+  {/if}
+
   <details class="card alt">
-    <summary>Without the plugin</summary>
+    <summary>Set it up by hand</summary>
     <div style="display:flex;flex-direction:column;gap:10px;padding-top:12px">
-      <p class="note" style="margin:0">Add the server by hand, then sign in the same way: <code>/mcp</code>, <b>artifact-buckets</b>, <b>Authenticate</b>.</p>
+      <p class="note" style="margin:0">With the plugin (the connection, plus skills that teach Claude your folders):</p>
+      <Copy text={`claude plugin marketplace add ${setup.marketplace}`} />
+      <Copy text={`claude plugin install ${setup.plugin}`} />
+      <p class="note" style="margin:6px 0 0">Or only the connection:</p>
       <Copy text={`claude mcp add --transport http artifact-buckets ${mcpUrl}`} />
+      <p class="note" style="margin:0">Then sign in with <code>/mcp</code> in Claude Code, choose <b>artifact-buckets</b> and <b>Authenticate</b>.</p>
     </div>
   </details>
 
@@ -159,4 +190,12 @@
   .dev:last-child { border-bottom: 0; }
   .dvi { width: 34px; height: 34px; border-radius: 9px; background: var(--raise); color: var(--text-2); display: grid; place-items: center; }
   .warn { color: var(--amber); }
+  .os { align-self: flex-start; }
+  .rollout .ro-body { padding: 18px 22px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .policy { margin: 0; padding: 14px 16px; border-radius: 10px; background: #0F1012; border: 1px solid var(--line); font-size: 12.5px; line-height: 1.55; color: var(--text); overflow-x: auto; }
+  .where { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; font-size: 13px; }
+  .where dt { color: var(--text-2); }
+  .where dd { margin: 0; overflow-wrap: anywhere; }
+  .where dd.mono { font-size: 12.5px; }
+  @media (max-width: 600px) { .where { grid-template-columns: 1fr; gap: 2px; } .where dd { margin-bottom: 8px; } }
 </style>

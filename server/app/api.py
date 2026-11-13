@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import accounts, acl, audit, config, directory, fs, mcp, paths, routing, storage, zfs
+from . import accounts, acl, audit, claude_dist, config, directory, fs, mcp, paths, routing, storage, zfs
 from .db import Audit, File, Folder, Grant, Group, Membership, RoutingRule, Token, User, get_setting, new_session, set_setting, utcnow
 from .errors import BadRequest, Forbidden, NotFound, Unauthorized
 from .oauth import set_session_cookie
@@ -107,7 +107,7 @@ def me(request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
     sess = load_web_session(db, request.cookies.get(SESSION_COOKIE))
     s = config.settings
     info = {"oidc": s.oidc_enabled, "smb": s.smb_enabled, "smb_host": s.smb_host, "base_url": s.base_url,
-            "marketplace": s.plugin_marketplace, "trash_days": s.trash_days, "max_file_bytes": s.max_file_bytes,
+            "claude": claude_dist.setup_info(), "trash_days": s.trash_days, "max_file_bytes": s.max_file_bytes,
             "storage_mode": s.storage_mode, "protected_storage": zfs.available()}
     if sess is None:
         return {"user": None, **info}

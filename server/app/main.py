@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import accounts, api, audit, config, directory, fs, mcp, oauth, paths, storage
+from . import accounts, api, audit, claude_dist, config, directory, fs, mcp, oauth, paths, storage
 from .db import Volume, init_engine, new_session
 from .errors import AppError
 
@@ -151,6 +151,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(oauth.router)
+    app.include_router(claude_dist.router)
     app.include_router(mcp.router)
     app.include_router(api.router)
     app.include_router(api.preview_router)
@@ -159,7 +160,7 @@ def create_app() -> FastAPI:
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str):
-        if full_path.startswith(("api/", "oauth/", "mcp", ".well-known/")):
+        if full_path.startswith(("api/", "oauth/", "mcp", ".well-known/", "claude/")):
             return JSONResponse({"error": "not_found", "message": "Not found"}, status_code=404)
         if full_path:
             fp = os.path.realpath(os.path.join(static, full_path))

@@ -1,5 +1,5 @@
 {
-  "name": "lab-tools",
+  "name": "artifact-buckets",
   "owner": { "name": "Lab platform team" },
   "metadata": { "description": "Claude Code plugins for the lab." },
   "plugins": [
@@ -7,7 +7,7 @@
       "name": "artifact-buckets",
       "source": "./artifact-buckets",
       "description": "Save what Claude Code makes into Artifact Buckets, the team file manager, and find, organize and share it.",
-      "version": "0.2.1"
+      "version": "0.3.0"
     }
   ]
 }
