@@ -490,10 +490,13 @@ start_app() {
   mkdir -p "$DIR/data/tree" "$DIR/data/volumes" "$DIR/data/db" "$DIR/data/caddy" "$DIR/data/tls/public" "$DIR/data/run"
   chmod 700 "$DIR/data/db" "$DIR/data/tls" 2>/dev/null || true
   step "Starting $APP_NAME"
+  _existed=$(compose ps -aq app 2>/dev/null || true)
   compose up -d --remove-orphans --quiet-pull >/dev/null 2>&1 || compose up -d --remove-orphans
-  # Recreate the app (a rebuilt image keeps its tag, so compose may not notice) and Caddy (it reads the
-  # Caddyfile only at start). The database keeps running.
-  compose up -d --force-recreate --no-deps app caddy >/dev/null 2>&1 || compose up -d --force-recreate --no-deps app caddy
+  # On a reinstall or upgrade, recreate the app (a rebuilt image keeps its tag, so compose may not notice)
+  # and Caddy (it reads the Caddyfile only at start). The database keeps running. A first start needs neither.
+  if [ -n "$_existed" ]; then
+    compose up -d --force-recreate --no-deps app caddy >/dev/null 2>&1 || compose up -d --force-recreate --no-deps app caddy
+  fi
   # Drop the image a rebuild replaced (only when nothing uses it any more).
   if [ -n "${OLD_IMAGE_ID:-}" ] && [ "$OLD_IMAGE_ID" != "$(docker images -q "$(env_get AB_IMAGE)" 2>/dev/null)" ]; then
     docker rmi "$OLD_IMAGE_ID" >/dev/null 2>&1 || true
@@ -618,6 +621,10 @@ cmd_uninstall() {
     # Only a dataset this installer created; one you brought stays.
     if [ -n "$ZFS" ] && [ "$(env_get AB_ZFS_CREATED)" = 1 ] && have zfs && zfs list -H -o name "$ZFS" >/dev/null 2>&1; then zfs destroy -r "$ZFS"; fi
     rm -rf "$DIR"
+    # The stock images too, unless another container still uses them (docker refuses then).
+    for _i in caddy:2.10 postgres:17; do
+      if docker rmi "$_i" >/dev/null 2>&1; then :; elif docker image inspect "$_i" >/dev/null 2>&1; then say "${D}Kept $_i: something else uses it.${R}"; fi
+    done
     say "Removed $APP_NAME and its data."
   else
     rm -rf "${DIR:?}/src" "${DIR:?}/src.new" "${DIR:?}/bin" "$DIR/compose.yml" "$DIR/Caddyfile" "${DIR:?}/${APP_SLUG:?}"
