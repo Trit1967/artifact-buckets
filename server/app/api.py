@@ -18,7 +18,7 @@ from .db import Audit, File, Folder, Grant, Group, Membership, RoutingRule, Toke
 from .errors import BadRequest, Forbidden, NotFound, Unauthorized
 from .oauth import set_session_cookie
 from .perms import Actor, role_for
-from .security import SESSION_COOKIE, consteq, create_web_session, end_web_session, issue_token, load_web_session, \
+from .security import hash_password, SESSION_COOKIE, consteq, create_web_session, end_web_session, issue_token, load_web_session, \
     resolve_token, sign, unsign, verify_password
 
 router = APIRouter(prefix="/api")
@@ -101,6 +101,33 @@ def logout(request: Request, db: Session = Depends(get_db)) -> Response:
     resp = JSONResponse({"ok": True})
     resp.delete_cookie(SESSION_COOKIE, path="/")
     return resp
+
+
+class PasswordBody(BaseModel):
+    current: str
+    new: str
+
+
+@router.post("/auth/password")
+def change_password(body: PasswordBody, request: Request, actor: Actor = Depends(current), db: Session = Depends(get_db)):
+    """A person changes their own password (local accounts; directory accounts change it in the directory)."""
+    if actor.via != "web":
+        raise Forbidden("Change your password in the web app")
+    u = actor.user
+    if u.source != "local":
+        raise BadRequest("Your password is managed by your organization's directory")
+    if not u.password_hash or not verify_password(body.current, u.password_hash):
+        audit.log(db, actor, "user.password", u.username, ok=False, reason="wrong current password")
+        db.commit()
+        raise BadRequest("Your current password isn't right")
+    if len(body.new) < 12:
+        raise BadRequest("Use at least 12 characters")
+    if body.new == body.current:
+        raise BadRequest("Choose a password different from the current one")
+    u.password_hash = hash_password(body.new)
+    audit.log(db, actor, "user.password", u.username)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/auth/me")

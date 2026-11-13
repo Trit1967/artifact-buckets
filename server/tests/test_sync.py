@@ -146,3 +146,16 @@ def test_relink_and_racing_polls(env):
     assert sum(1 for g in got if g.get("token")) == 1
     info = c.get(f"/api/sync/link/{s['code']}").json()
     assert "same_network" in info
+
+
+def test_change_own_password(env):
+    c = _app(env)
+    csrf = _login(c)
+    h = {"x-csrf-token": csrf}
+    assert c.post("/api/auth/password", json={"current": "wrong-one-123456", "new": "a-new-password-1"}, headers=h).status_code == 400
+    assert c.post("/api/auth/password", json={"current": ADMIN_PW, "new": "short"}, headers=h).status_code == 400
+    assert c.post("/api/auth/password", json={"current": ADMIN_PW, "new": "a-new-password-1"}).status_code == 403
+    assert c.post("/api/auth/password", json={"current": ADMIN_PW, "new": "a-new-password-1"}, headers=h).json()["ok"]
+    c.post("/api/auth/logout", headers=h)
+    assert c.post("/api/auth/login", json={"username": "admin", "password": ADMIN_PW}).status_code == 401
+    assert c.post("/api/auth/login", json={"username": "admin", "password": "a-new-password-1"}).status_code == 200

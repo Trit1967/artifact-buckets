@@ -57,7 +57,7 @@
         <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
       </div>
       <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
-      <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}. It adds the Artifact Buckets plugin to Claude Code, already pointed at this server. Running it again is safe.{#if setup.private_ca}{' '}This lab server uses its own certificate, so the first time, {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if}</p>
+      <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}. It adds the Artifact Buckets plugin to Claude Code, already pointed at this server. Running it again is safe.{#if setup.private_ca}{' '}This server uses its own certificate, so the first time, {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if}</p>
       <div class="or"><span>or ask Claude Code</span></div>
       <Copy text={setup.prompt} label="the prompt" />
       <p class="note">Paste it into Claude Code. Claude reads the steps, checks them, explains each one and does them for you.</p>
@@ -85,7 +85,7 @@
   </section>
 
   {#if session.isAdmin}
-    <section class="card rollout">
+    <section class="card rollout" id="rollout">
       <div class="hd">
         <div style="display:flex;flex-direction:column;gap:4px">
           <h2>Set up every computer at once</h2>

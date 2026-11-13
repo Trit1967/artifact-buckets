@@ -8,9 +8,11 @@
   import Logo from '../lib/Logo.svelte';
   import Icon from '../lib/Icon.svelte';
   import Copy from '../lib/Copy.svelte';
+  import ChangePassword from '../lib/ChangePassword.svelte';
 
   const STEPS = [
     { key: 'hello', label: 'Welcome' },
+    ...(session.isAdmin ? [{ key: 'team', label: 'Set up your team' }] : []),
     { key: 'connect', label: 'Connect Claude Code' },
     { key: 'work', label: 'Bring in your work' },
     { key: 'land', label: 'Where things land' },
@@ -40,8 +42,19 @@
   const projectFolders = $derived(folders.filter((f) => f.folder.startsWith(`${home}/projects/`)));
   const inbox = $derived(folders.find((f) => f.folder === `${home}/inbox`));
 
+  // Admins: people, team folders and storage at a glance.
+  let team = $state(null);
+  let pwOpen = $state(false);
+  if (session.isAdmin) {
+    Promise.all([api.get('/api/users', null, { quiet: true }), api.get('/api/groups', null, { quiet: true }), api.get('/api/storage', null, { quiet: true }).catch(() => null)])
+      .then(([u, g, st]) => (team = { people: u.users.length, groups: g.groups.length, storage: st }))
+      .catch(() => {});
+  }
+  const cur = $derived(STEPS[step].key);
+  const n = $derived(step + 1);
+
   // A step shows a check when it's actually done, not just passed.
-  const done = $derived([step > 0, connected, linked, false]);
+  const doneBy = $derived({ hello: step > 0, team: (team?.people || 0) > 1, connect: connected, work: linked, land: false });
   function go(i) { step = i; navigate(`/welcome?step=${STEPS[i].key}`, true); }
   async function finish(to = '/files') {
     await api.post('/api/sync/welcome/done').catch(() => {});
@@ -50,6 +63,8 @@
   }
   const short = (p) => p.slice(home.length + 1);
 </script>
+
+{#if pwOpen}<ChangePassword onclose={() => (pwOpen = false)} />{/if}
 
 <div class="wrap">
   <header class="top">
@@ -61,8 +76,8 @@
     <ol class="rail" aria-label="Steps">
       {#each STEPS as s, i}
         <li>
-          <button class="st" class:on={i === step} class:done={i !== step && done[i]} aria-current={i === step ? 'step' : undefined} onclick={() => go(i)}>
-            <span class="dot mono">{#if i !== step && done[i]}<Icon name="check" size={13} />{:else}{i + 1}{/if}</span>
+          <button class="st" class:on={i === step} class:done={i !== step && doneBy[s.key]} aria-current={i === step ? 'step' : undefined} onclick={() => go(i)}>
+            <span class="dot mono">{#if i !== step && doneBy[s.key]}<Icon name="check" size={13} />{:else}{i + 1}{/if}</span>
             <span class="lab">{s.label}</span>
             {#if s.key === 'connect' && connected}<span class="pip" title="Connected"></span>{/if}
             {#if s.key === 'work' && linked}<span class="pip" title="Syncing"></span>{/if}
@@ -74,7 +89,7 @@
     <section class="card panel">
       {#key step}
       <div class="body">
-        {#if step === 0}
+        {#if cur === 'hello'}
           <p class="eyebrow">Hello, {first}</p>
           <h1>Everything Claude makes, kept in one place.</h1>
           <p class="lede">Reports, diagrams, scripts and notes from Claude Code land in your folders here, filed by project. You can find them, open them in the browser, and share them with your team.</p>
@@ -85,8 +100,40 @@
           </div>
           <p class="note">This takes about two minutes. You can skip any step and come back from <b>Getting started</b> in your account menu.</p>
 
-        {:else if step === 1}
-          <p class="eyebrow">Step 2 of 4</p>
+        {:else if cur === 'team'}
+          <p class="eyebrow">Step {n} of {STEPS.length} · for admins</p>
+          <h1>Set up your team</h1>
+          <p class="lede">You’re the first admin. A few things to do before inviting people. Each opens in its own page; come back here from <b>Getting started</b> in your account menu.</p>
+          <div class="todo">
+            <button class="td" onclick={() => (pwOpen = true)}>
+              <span class="ti"><Icon name="key" /></span>
+              <span class="td-t"><b>Change the starting password</b><span>The one the installer printed. Only you should know it.</span></span>
+              <span class="td-go">Change</span>
+            </button>
+            <a class="td" href="/users">
+              <span class="ti"><Icon name="users" /></span>
+              <span class="td-t"><b>Add the people who’ll use it</b><span>One by one, or connect your directory so people and teams appear by themselves.</span></span>
+              <span class="td-go">{team ? `${team.people} ${team.people === 1 ? 'person' : 'people'}` : ''}<Icon name="back" style="transform:rotate(180deg)" /></span>
+            </a>
+            <a class="td" href="/groups">
+              <span class="ti"><Icon name="shield" /></span>
+              <span class="td-t"><b>Make team folders</b><span>Each group gets a shared folder. You choose who can view and who can edit.</span></span>
+              <span class="td-go">{team ? `${team.groups} ${team.groups === 1 ? 'group' : 'groups'}` : ''}<Icon name="back" style="transform:rotate(180deg)" /></span>
+            </a>
+            <a class="td" href="/storage">
+              <span class="ti"><Icon name="db" /></span>
+              <span class="td-t"><b>Check storage</b><span>How much space there is, disk health and restore points. It runs itself; add a disk when it fills up.</span></span>
+              <span class="td-go">{team?.storage?.total_bytes ? `${bytes(team.storage.used_bytes, 1)} of ${bytes(team.storage.total_bytes, 0)}` : ''}<Icon name="back" style="transform:rotate(180deg)" /></span>
+            </a>
+            <a class="td" href="/connect#rollout">
+              <span class="ti"><Icon name="laptop" /></span>
+              <span class="td-t"><b>Set up every computer at once</b><span>Optional: a policy for Intune, Group Policy or Jamf installs the plugin for everyone.</span></span>
+              <span class="td-go"><Icon name="back" style="transform:rotate(180deg)" /></span>
+            </a>
+          </div>
+
+        {:else if cur === 'connect'}
+          <p class="eyebrow">Step {n} of {STEPS.length}</p>
           <h1>Connect Claude Code</h1>
           <p class="lede">One line installs the Artifact Buckets plugin, already pointed at this server, then opens this site so you can sign in. Nothing to configure.</p>
           <div class="segs os" role="group" aria-label="Your computer">
@@ -94,7 +141,7 @@
             <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
           </div>
           <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
-          <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}.{#if setup.private_ca}{' '}This lab server has its own certificate, so {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if} Or paste this into Claude Code and it does the steps for you:</p>
+          <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}.{#if setup.private_ca}{' '}This server has its own certificate, so {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if} Or paste this into Claude Code and it does the steps for you:</p>
           <Copy text={setup.prompt} label="the prompt" />
           <div class="live" class:ok={connected}>
             {#if connected}
@@ -106,8 +153,8 @@
             {/if}
           </div>
 
-        {:else if step === 2}
-          <p class="eyebrow">Step 3 of 4</p>
+        {:else if cur === 'work'}
+          <p class="eyebrow">Step {n} of {STEPS.length}</p>
           <h1>Bring in what Claude already made</h1>
           <p class="lede">Claude Code remembers the files it created and edited on your computer. The setup line looks through that history, shows you what it found, and asks before copying anything. After that, new files arrive by themselves after each reply.</p>
           <ul class="rules">
@@ -139,7 +186,7 @@
           </div>
 
         {:else}
-          <p class="eyebrow">Step 4 of 4</p>
+          <p class="eyebrow">Step {n} of {STEPS.length}</p>
           <h1>Where things land</h1>
           <p class="lede">Each Claude Code project gets its own folder, named after its repository or the folder you ran Claude in. Anything made outside a project goes to your inbox.</p>
           <div class="tree mono">
@@ -164,9 +211,9 @@
       <footer class="foot">
         {#if step > 0}<button class="btn" onclick={() => go(step - 1)}>Back</button>{:else}<span></span>{/if}
         {#if step < STEPS.length - 1}
-          {@const later = (step === 1 && !connected) || (step === 2 && !linked)}
+          {@const later = (cur === 'connect' && !connected) || (cur === 'work' && !linked)}
           <button class="btn" class:pri={!later} onclick={() => go(step + 1)}>
-            {step === 0 ? 'Get started' : later ? 'Skip for now' : 'Continue'}
+            {cur === 'hello' ? 'Get started' : later ? 'Skip for now' : 'Continue'}
           </button>
         {:else}
           <button class="btn pri" onclick={() => finish(projectFolders.length ? `/files?path=${encodeURIComponent(home + '/projects')}` : '/files')}>Go to my files</button>
@@ -251,6 +298,15 @@
   .tr.sample { color: var(--faint); font-style: italic; }
   .tr.sample :global(.ic) { color: var(--faint); }
   .cnt { margin-left: auto; font-size: 11.5px; color: var(--faint); font-family: var(--sans); }
+  .todo { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .td { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line-soft); color: var(--text); background: var(--card-2); }
+  .td:last-child { border-bottom: 0; }
+  .td:hover { background: var(--raise); color: var(--text); }
+  .td:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+  .td .ti { margin: 0; flex: none; }
+  .td-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .td-t b { color: var(--text); font-weight: 500; font-size: 14px; }
+  .td-go { flex: none; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
   .eg { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); }
 
   .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 40px; border-top: 1px solid var(--line); background: var(--card-2); }
@@ -267,6 +323,8 @@
     .foot { padding: 14px 20px; }
     h1 { font-size: 24px; }
     .trio { grid-template-columns: 1fr; }
+    .td { align-items: flex-start; }
+    .td-go { font-size: 0; gap: 0; margin-top: 4px; }
     .top { padding: 16px; }
   }
 </style>

@@ -10,8 +10,8 @@ environment variable, clones a repository or types the server address.
   /claude/managed-settings.json       the policy IT pushes (Intune, Group Policy, Jamf)
   /claude/setup.md                    the same steps written for Claude Code, so a person can just ask
                                       "Set up Artifact Buckets from <server>/claude/setup.md"
-  /claude/ca.crt                      only when AB_INSTALL_CA_FILE is set: the lab's self-signed server
-                                      certificate (not a CA, valid only for the lab address)
+  /claude/ca.crt                      only when AB_INSTALL_CA_FILE is set: a self-signed server
+                                      certificate (not a CA, valid only for this server's address)
 
 All of it is public and holds nothing secret: the plugin is the same for everyone, and signing in
 still happens in the browser.
@@ -84,8 +84,8 @@ def marketplace_url() -> str:
 
 
 def install_base() -> str:
-    """Where the one-line installers are fetched from. Normally the server itself; the lab sets a plain
-    http address here so a computer can fetch the installer before it trusts the lab certificate."""
+    """Where the one-line installers are fetched from. Normally the server itself; a server with its own certificate sets a plain
+    http address here so a computer can fetch the installer before it trusts that certificate."""
     return (config.settings.install_url or config.settings.base_url).rstrip("/")
 
 
@@ -184,7 +184,7 @@ Windows PowerShell `irm {b}/claude/install.ps1 | iex`, or macOS and Linux `curl 
     if c:
         out.append(f"""## {n}. Trust this server's certificate
 
-This lab server uses its own certificate. It is a self-signed server certificate, not a certificate authority:
+This server uses its own certificate. It is a self-signed server certificate, not a certificate authority:
 its Basic Constraints say CA:FALSE and it names only this server (`{host}`, and its IP address), so trusting it
 lets it vouch for this one server and nothing else. Check that before trusting it:
 
@@ -327,7 +327,7 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
 }
 
 if ($CaUrl) {
-  # Lab only: the server uses its own certificate, so this computer has to trust it once.
+  # Only for a server with its own (self-signed) certificate: this computer has to trust it once.
   try {
     $dir = Join-Path $HOME '.artifact-buckets'
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -428,10 +428,10 @@ if [ -n "$CA_URL" ]; then
   else
     # Linux has no per-user trust store, and Claude Code reads NODE_EXTRA_CA_CERTS only at startup,
     # so it goes in the shell profile (a settings.json env entry comes too late for TLS).
-    line="export NODE_EXTRA_CA_CERTS=\"$ca\"  # Artifact Buckets lab certificate"
+    line="export NODE_EXTRA_CA_CERTS=\"$ca\"  # Artifact Buckets server certificate"
     for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
       [ -f "$rc" ] || [ "$rc" = "$HOME/.profile" ] || continue
-      grep -qs "Artifact Buckets lab certificate" "$rc" || printf '\n%s\n' "$line" >> "$rc"
+      grep -qsE "Artifact Buckets (lab|server) certificate" "$rc" || printf '\n%s\n' "$line" >> "$rc"
     done
     export NODE_EXTRA_CA_CERTS="$ca"
   fi
