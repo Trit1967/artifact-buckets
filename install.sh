@@ -103,7 +103,7 @@ rand_pass() { # 20 letters and digits
 
 env_get() { [ -f "$DIR/.env" ] && sed -n "s/^$1=//p" "$DIR/.env" | tail -n 1 || true; }
 env_set() { # env_set KEY VALUE (replaces any earlier line)
-  _t="$DIR/.env.tmp"
+  _t=$(mktemp "$DIR/.env.XXXXXX")
   { [ -f "$DIR/.env" ] && grep -v "^$1=" "$DIR/.env" || true; printf '%s=%s\n' "$1" "$2"; } >"$_t"
   chmod 600 "$_t"; mv "$_t" "$DIR/.env"
 }
@@ -168,6 +168,24 @@ pkg_install() {
 need_root() {
   [ "$(id -u)" = 0 ] || die "Run as root, for example: curl -fsSL <url> | sudo sh"
   [ "$(uname -s)" = Linux ] || die "This installer is for Linux hosts."
+}
+
+# One install, upgrade or uninstall at a time per install folder: two at once could each write their own
+# fresh secrets into .env. flock frees the lock by itself if the run is killed.
+take_lock() {
+  _lk="/run/$APP_SLUG$(printf '%s' "$DIR" | tr '/' '-').lock"
+  _busy="Another install, upgrade or uninstall of $APP_NAME is running in $DIR. Let it finish, then try again."
+  if have flock; then
+    exec 9>"$_lk"
+    flock -n 9 || die "$_busy"
+  else
+    if ! mkdir "$_lk.d" 2>/dev/null; then
+      # Left behind by a run that was killed more than an hour ago.
+      [ -n "$(find "$_lk.d" -maxdepth 0 -mmin +60 2>/dev/null)" ] && rmdir "$_lk.d" 2>/dev/null && mkdir "$_lk.d" 2>/dev/null || die "$_busy"
+    fi
+    trap 'rmdir "$_lk.d" 2>/dev/null' EXIT
+    trap 'exit 130' INT TERM
+  fi
 }
 
 ensure_tools() {
@@ -556,6 +574,7 @@ summary() {
 
 cmd_install() {
   need_root
+  take_lock
   say "${B}$APP_NAME installer${R}  ${D}($DIR)${R}"
   ensure_tools
   if [ -d "$DIR" ] && [ ! -f "$DIR/.$APP_SLUG-install" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
@@ -579,6 +598,7 @@ cmd_install() {
 
 cmd_upgrade() {
   need_root
+  take_lock
   [ -f "$DIR/.$APP_SLUG-install" ] && [ -f "$DIR/.env" ] || die "$APP_NAME isn't installed in $DIR."
   ensure_docker
   fetch_source
@@ -595,6 +615,7 @@ cmd_upgrade() {
 
 cmd_uninstall() {
   need_root
+  take_lock
   [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR (no install marker there), so nothing was removed."
   ZFS=$(env_get AB_ZFS_DATASET)
   if [ -n "$PURGE" ]; then
@@ -605,7 +626,7 @@ cmd_uninstall() {
       [ "$_c" = delete ] || die "Nothing was removed."
     fi
   else
-    say "This removes $APP_NAME's containers and program files. Your files, database and settings stay in $DIR/data and $DIR/.env (run the installer again to pick them up)."
+    say "This removes the $APP_NAME containers and program files. Your files, database and settings stay in $DIR/data and $DIR/.env (run the installer again to pick them up)."
     yesno "Continue?" Y || die "Nothing was removed."
   fi
   _img=$(env_get AB_IMAGE)
@@ -625,6 +646,7 @@ cmd_uninstall() {
     for _i in caddy:2.10 postgres:17; do
       if docker rmi "$_i" >/dev/null 2>&1; then :; elif docker image inspect "$_i" >/dev/null 2>&1; then say "${D}Kept $_i: something else uses it.${R}"; fi
     done
+    rm -f "$_lk"   # still held until this exits; nothing of it is left after
     say "Removed $APP_NAME and its data."
   else
     rm -rf "${DIR:?}/src" "${DIR:?}/src.new" "${DIR:?}/bin" "$DIR/compose.yml" "$DIR/Caddyfile" "${DIR:?}/${APP_SLUG:?}"
