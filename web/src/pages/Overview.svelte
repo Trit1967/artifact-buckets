@@ -97,7 +97,7 @@
             <span class="mono note" style="color:var(--text-2)">{d.pool.mode === 'direct' ? bytes(v.used_bytes) : `${bytes(v.used_bytes)} / ${bytes(v.total_bytes, 0)}`}</span>
           </div>
         {:else}
-          <div class="note" style="padding:12px 0">{d.pool.mode === 'mergerfs' ? 'No volumes mounted yet.' : 'Single-disk mode (development). With pooled disks, volumes show here.'}</div>
+          <div class="note" style="padding:12px 0">{d.pool.mode === 'mergerfs' ? 'No volumes mounted yet.' : 'Files are kept in plain folders on this server.'}</div>
         {/each}
       </div>
     </div>

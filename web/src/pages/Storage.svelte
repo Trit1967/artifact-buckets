@@ -35,6 +35,7 @@
   async function policy(p) { try { pool = await api.put('/api/storage/policy', { policy: p }); toast('Saved'); } catch (e) { fail(e); } }
   async function saveQuotas(e) { e.preventDefault(); try { await api.put('/api/storage/quotas', qf); toast('Default quotas saved'); load(); } catch (e) { fail(e); } }
 
+  const plain = $derived(pool?.mode === 'direct');
   const live = $derived((pool?.volumes || []).filter((v) => ['active', 'draining'].includes(v.status)));
   const STATUS = { pending: ['Waiting to join', 'blue'], active: ['In pool', 'green'], draining: ['Draining', 'amber'], drained: ['Drained, safe to unmount', ''], missing: ['Not mounted', 'red'] };
   const CHECK = { mounted: 'Mounted', readable: 'Readable', writable: 'Writable' };
@@ -45,8 +46,12 @@
     {#if session.protected_storage}
       <div><h1>Storage</h1><p class="sub">Disks, restore points and backups. Health checks, restore points and backups run on their own; this page is for when you want to look or change something.</p></div>
     {:else}
+      {#if plain}
+      <div><h1>Storage</h1><p class="sub">Files are kept in plain folders on this server's disk. Quotas below limit what each person and team folder can use.</p></div>
+      {:else}
       <div><h1>Storage</h1><p class="sub">Every volume mounted under the volumes folder joins one pool. People see one folder tree; files spread across the disks behind it. Add a disk any time; drain one to retire it.</p></div>
       <button class="btn" onclick={load}><Icon name="refresh" />Rescan mounts</button>
+      {/if}
     {/if}
   </header>
 
@@ -56,8 +61,8 @@
   {:else}
   <section class="card summary">
     <div class="row wrap" style="justify-content:space-between;gap:18px;align-items:flex-end">
-      <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">Pool</span><span class="big">{bytes(pool.used_bytes)} <span class="muted" style="font-size:18px;font-weight:500">of {bytes(pool.total_bytes, 0)}</span></span></div>
-      <span class="tag {pool.mode === 'mergerfs' ? 'green' : ''}">{pool.mode === 'mergerfs' ? 'mergerfs pool' : 'Single disk (development mode)'}</span>
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">{plain ? 'Files on this server' : 'Pool'}</span><span class="big">{bytes(pool.used_bytes)} <span class="muted" style="font-size:18px;font-weight:500">of {bytes(pool.total_bytes, 0)}</span></span></div>
+      <span class="tag {pool.mode === 'mergerfs' ? 'green' : ''}">{pool.mode === 'mergerfs' ? 'mergerfs pool' : 'Plain folders'}</span>
     </div>
     <div class="bigbar">
       {#if pool.mode === 'mergerfs'}
@@ -66,6 +71,7 @@
     </div>
   </section>
 
+  {#if !plain}
   <section class="vols">
     {#each pool.volumes as v, i}
       {@const st = STATUS[v.status] || [v.status, '']}
@@ -100,13 +106,14 @@
         {#if v.added_at}<span class="note">In the pool since {ago(v.added_at)}</span>{/if}
       </article>
     {:else}
-      <div class="card empty" style="grid-column:1/-1">{pool.mode === 'mergerfs' ? 'No volumes found under the volumes folder.' : 'Development mode stores files on one disk. With pooled disks, each mounted disk shows here.'}</div>
+      <div class="card empty" style="grid-column:1/-1">No volumes found under the volumes folder.</div>
     {/each}
   </section>
+  {/if}
 
   {/if}
   <section class="duo">
-    {#if !session.protected_storage}
+    {#if !session.protected_storage && !plain}
     <div class="card pad">
       <h2>Where new files go</h2>
       <div class="pols">
@@ -131,7 +138,7 @@
     </form>
   </section>
 
-  {#if !session.protected_storage}
+  {#if !session.protected_storage && !plain}
   <section class="card pad how">
     <h2>Adding a disk</h2>
     <ol>

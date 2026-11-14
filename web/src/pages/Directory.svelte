@@ -141,7 +141,7 @@ AB_LDAP_BASE_DN=DC=corp,DC=example,DC=com</pre>
       <h2>One person, three ways in</h2>
       <div class="ways">
         <div><Icon name="lock" /><span><b>Browser</b>: Entra ID single sign-on, MFA from your tenant.</span></div>
-        <div><Icon name="sparkle" /><span><b>Claude Code</b>: signs in through the same browser page, gets its own revocable device.</span></div>
+        <div><Icon name="terminal" /><span><b>Claude Code</b>: signs in through the same browser page, gets its own revocable device.</span></div>
         <div><Icon name="windows" /><span><b>Windows</b>: Kerberos to the domain-joined share, no extra password.</span></div>
       </div>
       <p class="note" style="margin:0">All three see the same folders with the same permissions, because they all check the same grants.</p>

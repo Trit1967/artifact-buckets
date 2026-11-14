@@ -20,6 +20,10 @@ class Unauthorized(AppError):
     status, code = 401, "unauthorized"
 
 
+class TooManyAttempts(AppError):
+    status, code = 429, "too_many_attempts"
+
+
 class Forbidden(AppError):
     status, code = 403, "forbidden"
 
