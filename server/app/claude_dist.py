@@ -297,7 +297,8 @@ person to close open Claude Code windows. Only if the script can't run, do these
 
 1. If `~/.artifact-buckets/sync.ps1` or `sync.sh` exists, run it with `unlink`. That ends this computer's sync
    and its Claude Code sign-in on the server. Then `claude mcp logout plugin:{PLUGIN}:{SERVER}`.
-2. `claude plugin uninstall {PLUGIN}@{MARKETPLACE}`, then `claude plugin marketplace remove {MARKETPLACE}`.
+2. `claude plugin uninstall {PLUGIN}@{MARKETPLACE}`, then `claude plugin marketplace remove {MARKETPLACE}`, then delete the leftover folder
+   `~/.claude/plugins/cache/{MARKETPLACE}`.
 3. Remove `NODE_EXTRA_CA_CERTS` if it points at `.artifact-buckets/server.crt`, and the
    `# Artifact Buckets server certificate` line from shell profiles. Older versions of setup also added the
    certificate to the person's own trust list (Windows `Cert:\\CurrentUser\\Root`, the macOS login keychain);
@@ -581,6 +582,7 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
   $known = (claude plugin marketplace list 2>&1 | Out-String)
   if ($known -match '{{MARKETPLACE}}') { claude plugin marketplace remove {{MARKETPLACE}} 2>&1 | Out-Null; Step "Plugin source removed" }
 }
+Remove-Item -Recurse -Force (Join-Path $HOME '.claude\plugins\cache\{{MARKETPLACE}}') -ErrorAction SilentlyContinue   # the plugin's leftover download
 
 # 3. The server certificate: the NODE_EXTRA_CA_CERTS setting if it points here, and (from older versions of
 #    setup) the copy in your own Windows trust list, matched by fingerprint so nothing else is touched.
@@ -636,6 +638,7 @@ if command -v claude >/dev/null 2>&1; then
   if claude plugin marketplace list 2>/dev/null | grep -q '{{MARKETPLACE}}'; then
     claude plugin marketplace remove {{MARKETPLACE}} >/dev/null 2>&1 && say "Plugin source removed"; fi
 fi
+rm -rf "$HOME/.claude/plugins/cache/{{MARKETPLACE}}"   # the plugin's leftover download
 
 # 3. The certificate line setup added to the shell profile, and (from older versions of setup on macOS) the
 #    keychain entry, matched by fingerprint so nothing else is touched.

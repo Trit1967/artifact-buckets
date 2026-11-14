@@ -47,7 +47,7 @@
       <div><h1>Storage</h1><p class="sub">Disks, restore points and backups. Health checks, restore points and backups run on their own; this page is for when you want to look or change something.</p></div>
     {:else}
       {#if plain}
-      <div><h1>Storage</h1><p class="sub">Files are kept in plain folders on this server's disk. Quotas below limit what each person and team folder can use.</p></div>
+      <div><h1>Storage</h1><p class="sub">Files are kept in plain folders on this server's disk, which the system and Docker share. Quotas below limit what each person and team folder can use.</p></div>
       {:else}
       <div><h1>Storage</h1><p class="sub">Every volume mounted under the volumes folder joins one pool. People see one folder tree; files spread across the disks behind it. Add a disk any time; drain one to retire it.</p></div>
       <button class="btn" onclick={load}><Icon name="refresh" />Rescan mounts</button>
@@ -61,7 +61,7 @@
   {:else}
   <section class="card summary">
     <div class="row wrap" style="justify-content:space-between;gap:18px;align-items:flex-end">
-      <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">{plain ? 'Files on this server' : 'Pool'}</span><span class="big">{bytes(pool.used_bytes)} <span class="muted" style="font-size:18px;font-weight:500">of {bytes(pool.total_bytes, 0)}</span></span></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">{plain ? 'Server disk in use' : 'Pool'}</span><span class="big">{bytes(pool.used_bytes)} <span class="muted" style="font-size:18px;font-weight:500">of {bytes(pool.total_bytes, 0)}</span></span></div>
       <span class="tag {pool.mode === 'mergerfs' ? 'green' : ''}">{pool.mode === 'mergerfs' ? 'mergerfs pool' : 'Plain folders'}</span>
     </div>
     <div class="bigbar">

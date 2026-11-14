@@ -67,6 +67,7 @@
       <h2>Press Connect once</h2>
       <p class="note">A page opens here in your browser. Untick any folders of Claude’s existing work that should stay on your computer, then press <b>Connect</b>. That one press signs Claude Code in too.{#if setup.private_ca}{' '}This server uses its own certificate, so your browser may warn the first time.{/if}</p>
       <div class="mock">
+        <span class="faint" style="font-size:11px;letter-spacing:.06em;text-transform:uppercase">Example</span>
         <div class="mrow"><span class="mbox on"><Icon name="check" size={10} /></span><span class="mono">quarterly-report</span><span class="faint mono">14 files</span></div>
         <div class="mrow"><span class="mbox on"><Icon name="check" size={10} /></span><span class="mono">onboarding-guide</span><span class="faint mono">6 files</span></div>
         <div class="mrow off"><span class="mbox"></span><span class="mono">client-work</span><span class="faint mono">22 files</span></div>

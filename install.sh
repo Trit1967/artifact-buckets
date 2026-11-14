@@ -671,7 +671,7 @@ $APP_NAME installer.  curl -fsSL https://raw.githubusercontent.com/$REPO/main/in
                       --https-port N  --http-port N  --public-https-port N  --public-http-port N  --ip ADDR
                       --zfs POOL[/DATASET]  --no-zfs  --image REF  --build
                       --source DIR|URL  --ref REF  --ca-file F  --dir DIR  --yes
-  status | logs [app|caddy|db] [-f] | password | restart
+  status | logs [app|caddy|db] [-f] | password | reset-password [USER] | restart
   upgrade             [--source DIR|URL] [--build] [--image REF]
   uninstall           [--purge] [--yes]   (keeps files and database unless --purge)
 
@@ -686,7 +686,7 @@ need() {
 
 main() {
   _cmd=install
-  case ${1:-} in install|upgrade|uninstall|status|logs|password|restart|help|-h|--help) _cmd=$1; shift ;; esac
+  case ${1:-} in install|upgrade|uninstall|status|logs|password|reset-password|restart|help|-h|--help) _cmd=$1; shift ;; esac
   if [ "$_cmd" = logs ]; then
     [ -f "$DIR/compose.yml" ] || die "$APP_NAME isn't installed in $DIR."
     _f=""; _svc=""
@@ -731,7 +731,10 @@ main() {
     uninstall) cmd_uninstall ;;
     status) cmd_status ;;
     restart) need_root; compose restart; say "Restarted." ;;
-    password) need_root; [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR."; say "admin / $(env_get AB_BOOTSTRAP_PASSWORD)  ${D}(the first password; if it was changed in the app, this one no longer works)${R}" ;;
+    password) need_root; [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR."; say "admin / $(env_get AB_BOOTSTRAP_PASSWORD)  ${D}(the first password; if it was changed in the app, this one no longer works; $APP_SLUG reset-password makes a new one)${R}" ;;
+    reset-password) need_root; [ -f "$DIR/.$APP_SLUG-install" ] || die "$APP_NAME isn't installed in $DIR."
+      _pw=$(compose exec -T app python -m app.cli reset-password "${1:-admin}") || die "Couldn't reset it. Is $APP_NAME running? (try: $APP_SLUG status)"
+      say "${1:-admin} / $_pw  ${D}(new password; they are signed out everywhere)${R}" ;;
     help|-h|--help) usage ;;
   esac
 }

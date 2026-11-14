@@ -51,7 +51,7 @@
     <div class="card kpi"><span class="muted">People</span><span class="big">{d.people}</span><span class="note">active accounts</span></div>
     <div class="card kpi"><span class="muted">Files stored</span><span class="big">{d.files.toLocaleString()}</span><span class="note">{d.folders_with_grants} folders with their own sharing</span></div>
     <div class="card kpi"><span class="muted">Saved from Claude Code</span><span class="big" style="color:var(--amber)">{total.toLocaleString()}</span><span class="note">last {days} days</span></div>
-    <div class="card kpi"><span class="muted">Pool capacity</span><span class="big">{d.pool.total_bytes ? Math.round((d.pool.used_bytes / d.pool.total_bytes) * 100) : 0}%</span><span class="note">{bytes(d.pool.used_bytes)} of {bytes(d.pool.total_bytes, 0)}{nvol ? ` on ${nvol} ${nvol === 1 ? 'disk' : 'disks'}` : ''}</span></div>
+    <div class="card kpi"><span class="muted">{d.pool.mode === 'direct' ? 'Disk in use' : 'Pool capacity'}</span><span class="big">{d.pool.total_bytes ? Math.round((d.pool.used_bytes / d.pool.total_bytes) * 100) : 0}%</span><span class="note">{bytes(d.pool.used_bytes)} of {bytes(d.pool.total_bytes, 0)}{nvol ? ` on ${nvol} ${nvol === 1 ? 'disk' : 'disks'}` : ''}</span></div>
   </section>
 
   <section class="duo">
@@ -89,7 +89,7 @@
     </div>
 
     <div class="card side">
-      <div class="row" style="justify-content:space-between"><h2>Storage pool</h2><a href="/storage" style="font-size:13px">Manage</a></div>
+      <div class="row" style="justify-content:space-between"><h2>{d.pool.mode === 'direct' ? 'Server disk' : 'Storage pool'}</h2><a href="/storage" style="font-size:13px">Manage</a></div>
       <div class="row" style="align-items:baseline;gap:8px"><span style="font-size:28px;font-weight:600;letter-spacing:-0.03em">{bytes(d.pool.total_bytes - d.pool.used_bytes)}</span><span class="note">free of {bytes(d.pool.total_bytes, 0)}</span></div>
       <div class="bar">
         {#each d.volumes.filter((v) => v.status === 'active' || v.status === 'draining') as v, i}
