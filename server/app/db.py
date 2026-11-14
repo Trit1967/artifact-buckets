@@ -235,9 +235,22 @@ def init_engine(url: str | None = None):
             dbapi_conn.execute("PRAGMA journal_mode=WAL")
             # Paths are case-sensitive (Linux allows /p/a next to /p/A); LIKE must be too, as on PostgreSQL.
             dbapi_conn.execute("PRAGMA case_sensitive_like=ON")
+    _drop_stale_tables(_engine)
     Base.metadata.create_all(_engine)
     _Session = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
+
+
+def _drop_stale_tables(engine: Any) -> None:
+    """Tables that only hold short-lived data and changed shape: an older copy is dropped and made again."""
+    from sqlalchemy import inspect
+    insp = inspect(engine)
+    if "sync_link_plans" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("sync_link_plans")}
+        if not {"id", "computer_id", "token_id"} <= cols:
+            from sqlalchemy import text
+            with engine.begin() as conn:
+                conn.execute(text("DROP TABLE sync_link_plans"))
 
 
 def new_session() -> Session:

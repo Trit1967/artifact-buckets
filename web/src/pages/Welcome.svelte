@@ -135,14 +135,14 @@
         {:else if cur === 'connect'}
           <p class="eyebrow">Step {n} of {STEPS.length}</p>
           <h1>Connect Claude Code</h1>
-          <p class="lede">One line installs the Artifact Buckets plugin, already pointed at this server, then opens this site so you can sign in. Nothing to configure.</p>
+          <p class="lede">Paste this into Claude Code on your computer. It sets everything up, then opens one page here where you choose which of Claude’s existing files to bring in and press <b>Connect</b>. That’s the only click.</p>
+          <Copy text={setup.prompt} label="the prompt" />
+          <p class="note">Rather not use Claude for it? The same steps are one line for {os === 'windows' ? 'PowerShell' : 'a terminal'}, below.{#if setup.private_ca}{' '}This server has its own certificate, so your browser may warn the first time.{/if}</p>
           <div class="segs os" role="group" aria-label="Your computer">
             <button class="seg" class:on={os === 'windows'} onclick={() => (os = 'windows')}>Windows</button>
             <button class="seg" class:on={os === 'unix'} onclick={() => (os = 'unix')}>macOS and Linux</button>
           </div>
           <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
-          <p class="note">Paste it into {os === 'windows' ? 'PowerShell' : 'a terminal'}.{#if setup.private_ca}{' '}This server has its own certificate, so {os === 'windows' ? 'Windows' : 'your computer'} asks you to trust it once.{/if} Or paste this into Claude Code and it does the steps for you:</p>
-          <Copy text={setup.prompt} label="the prompt" />
           <div class="live" class:ok={connected}>
             {#if connected}
               <span class="lv-i"><Icon name="check" /></span>
@@ -156,15 +156,14 @@
         {:else if cur === 'work'}
           <p class="eyebrow">Step {n} of {STEPS.length}</p>
           <h1>Bring in what Claude already made</h1>
-          <p class="lede">Claude Code remembers the files it created and edited on your computer. The setup line looks through that history, shows you what it found, and asks before copying anything. After that, new files arrive by themselves after each reply.</p>
+          <p class="lede">Claude Code remembers the files it created and edited on your computer. Setup looks through that history and shows you, folder by folder, what it found; only the folders you keep ticked are copied. After that, new files arrive by themselves after each reply.</p>
           <ul class="rules">
             <li><Icon name="check" /><span>Files Claude created or edited, filed by project</span></li>
             <li class="no"><Icon name="x" /><span>Files already kept in git, secrets like <span class="mono">.env</span> and keys, build and dependency folders</span></li>
             <li class="no"><Icon name="x" /><span>It can only add files to your folders. It can’t open, change or delete anything here</span></li>
           </ul>
           {#if !linked}
-            <p class="note">Already ran the setup line and said no? Run it again; it skips what’s done and asks once more.</p>
-            <Copy text={os === 'windows' ? setup.windows : setup.unix} label="the setup command" />
+            <p class="note">Connected without syncing? Paste the setup prompt into Claude Code again and add “and turn on syncing”. The same page opens again.</p>
           {/if}
           <div class="arrivals">
             <div class="ar-hd">
