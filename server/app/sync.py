@@ -111,19 +111,26 @@ def plan_computer(db: Session, plan: LinkPlan) -> str:
 def _computer_tokens(db: Session, user_id: int, plan: LinkPlan | None, computer: str) -> list[Token]:
     """The live keys this same computer was given before. Matched by the computer's own random id; computers
     set up before it had one are matched by name."""
+    return _computer_keys(db, user_id, plan, computer)[0]
+
+
+def _computer_keys(db: Session, user_id: int, plan: LinkPlan | None, computer: str) -> tuple[list[Token], bool]:
+    """As above, plus whether they were matched by the computer's id (so provably the same computer)."""
+    by_id = False
     if plan is not None and plan.computer_id:
         ids = [p.token_id for p in db.scalars(select(LinkPlan).where(LinkPlan.computer_id == plan.computer_id,
                                                                      LinkPlan.token_id.is_not(None)))]
         if ids:
-            q = select(Token).where(Token.id.in_(ids))
+            q, by_id = select(Token).where(Token.id.in_(ids)), True
         else:
-            # Its first link since it got an id: the key an older version of setup gave it, matched by name,
-            # but never a key that belongs to another computer with an id of its own.
+            # Its first link since it got an id: the key an older setup (with no id) gave it, matched by name,
+            # never a key of a computer that has an id. A name can't prove it's the same computer, so the key is
+            # only replaced: no sign-in carries over from it.
             owned = select(LinkPlan.token_id).where(LinkPlan.computer_id.is_not(None), LinkPlan.token_id.is_not(None))
             q = select(Token).where(Token.name == f"Sync on {computer or plan_computer(db, plan)}", Token.id.not_in(owned))
     else:
         q = select(Token).where(Token.name == f"Sync on {computer}")
-    return list(db.scalars(q.where(Token.user_id == user_id, Token.kind == "sync", Token.revoked.is_(False))))
+    return list(db.scalars(q.where(Token.user_id == user_id, Token.kind == "sync", Token.revoked.is_(False)))), by_id
 
 
 def _link_row(db: Session, code: str) -> SyncLink:
@@ -238,9 +245,10 @@ def link_poll(body: PollBody, db: Session = Depends(get_db)) -> dict[str, Any]:
     # Linking the same computer again replaces its earlier link, and keeps its Claude Code sign-in attached
     # (only when it's provably the same computer, by its own id).
     client_id = plan.client_id if plan is not None else None
-    for old in _computer_tokens(db, u.id, plan, row.computer):
+    olds, same = _computer_keys(db, u.id, plan, row.computer)
+    for old in olds:
         old.revoked = True
-        if plan is not None and plan.computer_id:
+        if same:
             client_id = client_id or old.client_id
     # Connected without syncing still gets a computer key, so removing Artifact Buckets from the computer can
     # end its sign-in here; it just can't add files (scope "read").
@@ -437,7 +445,8 @@ def link_decide(code: str, decision: str, request: Request, body: DecideBody | N
 def _signed_in(db: Session, user_id: int, plan: LinkPlan) -> bool:
     if not plan.computer_id:
         return False
-    prev = [t.client_id for t in _computer_tokens(db, user_id, plan, "") if t.client_id]
+    olds, same = _computer_keys(db, user_id, plan, "")
+    prev = [t.client_id for t in olds if t.client_id] if same else []
     if not prev:
         return False
     if db.scalar(select(Token.id).where(Token.user_id == user_id, Token.client_id.in_(prev),
