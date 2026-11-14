@@ -31,10 +31,6 @@
   const allOn = $derived(folders.length > 0 && chosen.length === folders.length);
   const label = (f) => f.label || (f.folder === 'inbox' ? 'Loose files' : f.folder.slice('projects/'.length));
   // The end of a path is the part people recognise.
-  // Keep the end of a long path (the project's own folder), sized to the screen so it isn't cut again.
-  let width = $state(typeof window === 'undefined' ? 1024 : window.innerWidth);
-  const room = $derived(width < 420 ? 26 : width < 560 ? 34 : 46);
-  const tail = (p, n) => (p.length > n ? '…' + p.slice(-(n - 1)) : p);
   const dest = (f) => `${home}/${f.folder}`;
 
   function toggle(f) { const k = new Set(keep); k.has(f.folder) ? k.delete(f.folder) : k.add(f.folder); keep = k; }
@@ -51,8 +47,6 @@
   const chars = $derived((info?.code || code).split(''));
   const files = (n) => `${n.toLocaleString()} file${n === 1 ? '' : 's'}`;
 </script>
-
-<svelte:window bind:innerWidth={width} />
 
 <div class="wrap">
   <div class="card box">
@@ -82,7 +76,7 @@
           <p class="muted">Nothing will be copied from it. Go back to the computer; setup finishes by itself. You can turn on syncing later from Connect Claude Code.</p>
         {/if}
       </div>
-      <div class="row" style="gap:10px">
+      <div class="row btns">
         {#if synced}<a class="btn pri" href={session.welcome ? '/welcome?step=work' : '/connect#sync'}>Watch them arrive</a>{/if}
         <a class={synced ? 'btn' : 'btn pri'} href={`/files?path=${encodeURIComponent(home)}`}>Open my folders</a>
       </div>
@@ -127,7 +121,7 @@
                   <span class="fi"><Icon name={f.folder === 'inbox' ? 'inbox' : 'folder'} size={15} /></span>
                   <span class="fn">
                     <span class="nm">{label(f)}</span>
-                    {#if f.source}<span class="src mono" title={f.source}>{tail(f.source, room)}</span>{:else}<span class="src">Files from outside a project</span>{/if}
+                    {#if f.source}<span class="src mono clip" title={f.source}><bdi dir="ltr">{f.source}</bdi></span>{:else}<span class="src">Files from outside a project</span>{/if}
                   </span>
                   <span class="ct">{files(f.files)}<span class="sz">{bytes(f.bytes)}</span></span>
                 </label>
@@ -174,7 +168,7 @@
   .dash { flex: 0 0 40px; border-top: 1.5px dashed var(--line-hover); }
   .dash.done { border-top-style: solid; border-color: #2C4A3A; }
   .code { display: flex; align-items: center; gap: 6px; padding: 16px; border-radius: 12px; background: #0F1012; border: 1px solid var(--line); justify-content: center; }
-  .ch { width: 36px; height: 46px; border-radius: 8px; background: var(--raise); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 22px; font-weight: 500; color: var(--amber-hi); }
+  .ch { flex: 0 1 36px; min-width: 0; height: 46px; border-radius: 8px; background: var(--raise); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 22px; font-weight: 500; color: var(--amber-hi); }
   .sep { width: 10px; height: 2px; border-radius: 2px; background: var(--line-hover); margin: 0 4px; }
   .foreign { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--red-bg); border: 1px solid #5A2E24; color: var(--text-2); font-size: 13px; line-height: 1.5; }
   .foreign :global(.ic) { color: var(--red); flex: none; margin-top: 1px; }
@@ -197,6 +191,9 @@
   .nm { font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .off .nm { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--line-hover); }
   .src { font-size: 11.5px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A long path loses its start, never its end: the project's own folder stays readable at any width. */
+  .src.clip { direction: rtl; text-align: left; }
+  .btns { gap: 10px; flex-wrap: wrap; }
   .ct { font-size: 12.5px; color: var(--text-2); text-align: right; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
   .ct .sz { font-size: 11.5px; color: var(--faint); }
   .off .ct { color: var(--faint); }
@@ -215,7 +212,7 @@
   @media (max-width: 420px) {
     .box { padding: 22px; }
     .code { gap: 4px; padding: 12px 8px; }
-    .ch { width: 30px; height: 40px; font-size: 18px; }
-    .sep { margin: 0 2px; }
+    .ch { flex-basis: 30px; height: 40px; font-size: 18px; }
+    .sep { flex: 0 1 8px; margin: 0 1px; }
   }
 </style>

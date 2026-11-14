@@ -356,3 +356,40 @@ def test_a_later_hand_approved_sign_in_does_not_take_over(app, admin):
     h = lambda t: {"authorization": f"Bearer {t}", "accept": "application/json, text/event-stream"}
     assert tc.post("/mcp", json=ping, headers=h(access)).status_code == 401
     assert tc.post("/mcp", json=ping, headers=h(other)).status_code == 200
+
+
+def test_upgraded_computer_replaces_its_old_name_only_key(app, admin):
+    c, s = _start(app, computer="OLD-PC")                      # set up by an older script: no id
+    admin.post(f"/api/sync/link/{s['code']}/allow")
+    old = c.post("/api/sync/link/poll", json={"poll": s["poll"]}).json()["token"]
+    other_c, other_s = _start(app, computer="OLD-PC", computer_id="zzzzzzzzzzzzzzzz-other")   # a different one, with an id
+    admin.post(f"/api/sync/link/{other_s['code']}/allow")
+    other = other_c.post("/api/sync/link/poll", json={"poll": other_s["poll"]}).json()["token"]
+    c2, s2 = _start(app, computer="OLD-PC", computer_id=CID)   # the old computer, now with the new script
+    admin.post(f"/api/sync/link/{s2['code']}/allow")
+    c2.post("/api/sync/link/poll", json={"poll": s2["poll"]})
+    h = lambda k: {"authorization": f"Bearer {k}", "x-sync-where": "inbox", "x-sync-path": base64.b64encode(b"u.txt").decode()}
+    assert c.put("/api/sync/file", content=b"x", headers=h(old)).status_code == 401
+    assert c.put("/api/sync/file", content=b"x", headers=h(other)).status_code in (200, 201)
+
+
+def test_long_source_paths_and_odd_ids_do_not_fail_the_link(app, admin):
+    c, s = _start(app, folders=[{"folder": "projects/deep", "files": 1, "bytes": 1, "source": "C:\\" + "x" * 5000}],
+                  computer_id="!" * 300)
+    info = admin.get(f"/api/sync/link/{s['code']}").json()
+    assert len(info["folders"][0]["source"]) <= 400
+
+
+def test_an_older_link_table_is_replaced(env):
+    from sqlalchemy import create_engine, text
+    from app import config
+    eng = create_engine(config.settings.database_url)
+    with eng.begin() as conn:
+        conn.execute(text("CREATE TABLE sync_link_plans (link_id INTEGER PRIMARY KEY, folders JSON)"))
+    eng.dispose()
+    from app.main import create_app
+    a = create_app()
+    with TestClient(a):
+        pass
+    web = TestClient(a)
+    assert web.post("/api/sync/link/start", json={"computer": "X", "folders": []}).status_code == 200

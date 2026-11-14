@@ -103,15 +103,24 @@ def _plan(db: Session, link_id: int) -> LinkPlan | None:
     return db.scalar(select(LinkPlan).where(LinkPlan.link_id == link_id).order_by(LinkPlan.id.desc()).limit(1))
 
 
+def plan_computer(db: Session, plan: LinkPlan) -> str:
+    row = db.get(SyncLink, plan.link_id) if plan.link_id is not None else None
+    return row.computer if row is not None else ""
+
+
 def _computer_tokens(db: Session, user_id: int, plan: LinkPlan | None, computer: str) -> list[Token]:
     """The live keys this same computer was given before. Matched by the computer's own random id; computers
     set up before it had one are matched by name."""
     if plan is not None and plan.computer_id:
         ids = [p.token_id for p in db.scalars(select(LinkPlan).where(LinkPlan.computer_id == plan.computer_id,
                                                                      LinkPlan.token_id.is_not(None)))]
-        if not ids:
-            return []
-        q = select(Token).where(Token.id.in_(ids))
+        if ids:
+            q = select(Token).where(Token.id.in_(ids))
+        else:
+            # Its first link since it got an id: the key an older version of setup gave it, matched by name,
+            # but never a key that belongs to another computer with an id of its own.
+            owned = select(LinkPlan.token_id).where(LinkPlan.computer_id.is_not(None), LinkPlan.token_id.is_not(None))
+            q = select(Token).where(Token.name == f"Sync on {computer or plan_computer(db, plan)}", Token.id.not_in(owned))
     else:
         q = select(Token).where(Token.name == f"Sync on {computer}")
     return list(db.scalars(q.where(Token.user_id == user_id, Token.kind == "sync", Token.revoked.is_(False))))
@@ -127,15 +136,15 @@ def _link_row(db: Session, code: str) -> SyncLink:
 # ---- the computer's side ------------------------------------------------------------
 
 class FolderInfo(BaseModel):
-    folder: str = Field(max_length=1024)
+    folder: str = Field(max_length=4096)
     files: int = 0
     bytes: int = 0
-    source: str = Field("", max_length=2048)   # the folder on the computer it comes from, to recognise it
+    source: str = Field("", max_length=65536)  # shown trimmed   # the folder on the computer it comes from, to recognise it
 
 
 class StartBody(BaseModel):
     computer: str = Field("", max_length=4096)   # trimmed to 64 below
-    computer_id: str = Field("", max_length=64)  # a random id the computer keeps, so two "MacBook-Pro"s differ
+    computer_id: str = Field("", max_length=4096)   # anything but 16-64 of [A-Za-z0-9_-] counts as none  # a random id the computer keeps, so two "MacBook-Pro"s differ
     folders: list[FolderInfo] = Field([], max_length=2000)
 
 

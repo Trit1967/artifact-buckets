@@ -65,10 +65,12 @@ folders_json() {
 
 # A random id this computer keeps, so two computers with the same name stay apart on the server.
 computer_id() {
-  id=$(cat "$DIR/computer-id" 2>/dev/null || true)
-  case "$id" in ????????????????*) ;; *)
-    id=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'); printf '%s\n' "$id" > "$DIR/computer-id" ;; esac
-  printf '%s' "$id" | tr -cd 'A-Za-z0-9_-' | cut -c1-64
+  id=$(head -c 200 "$DIR/computer-id" 2>/dev/null | tr -d ' \r\n' || true)
+  # Only 16-64 letters, digits, - and _ count (as on the server); anything else is replaced.
+  if [ "$(printf '%s' "$id" | tr -cd 'A-Za-z0-9_-')" != "$id" ] || [ ${#id} -lt 16 ] || [ ${#id} -gt 64 ]; then
+    id=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'); printf '%s\n' "$id" > "$DIR/computer-id"
+  fi
+  printf '%s' "$id"
 }
 
 link() {

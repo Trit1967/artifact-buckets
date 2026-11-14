@@ -193,7 +193,7 @@ short, so read it before running it. Save it to `~/.artifact-buckets/` and run i
 (the person presses Connect in the browser while it waits):
 
 - Windows: download {b}/claude/install.ps1, then
-  `powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\.artifact-buckets\install.ps1"`
+  `powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\\.artifact-buckets\\install.ps1"`
 - macOS and Linux: download {b}/claude/install.sh, then `sh ~/.artifact-buckets/install.sh`
 
 Then confirm `claude mcp list` shows `plugin:{PLUGIN}:{SERVER}` as Connected, and tell the person what happened
@@ -267,8 +267,10 @@ It only finishes in a terminal, so from your shell tool give it one:
 
 - Linux: `script -qec "claude mcp login {mcp}" /dev/null </dev/null`
 - macOS: `script -q /dev/null claude mcp login {mcp} </dev/null`
-- Windows (PowerShell): `Start-Process (Get-Command claude).Source -ArgumentList 'mcp','login','{mcp}' -Wait`
+- Windows (PowerShell): `Start-Process powershell -ArgumentList '-NoProfile','-Command',"claude mcp login '{mcp}'" -Wait`
   (a console window opens and closes by itself)
+
+Don't go by its exit code (it can end with 130 after signing in fine); check `claude mcp list` instead.
 
 `claude mcp list` should now show `{mcp}` as Connected. If it doesn't, ask the person to open a new Claude
 Code window within ten minutes, type `/mcp`, choose artifact-buckets and then Authenticate.
@@ -441,13 +443,17 @@ else {
   Step "Finishing sign-in..."
   # Claude Code's sign-in needs a real console. Run here when this window is one; otherwise (say, when
   # Claude Code itself runs this script) in a console window of its own that closes when it's done.
+  # Its exit code isn't reliable (it can end with 130 after a good sign-in), so ask Claude Code afterwards.
   if (-not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) {
-    claude mcp login '{{MCP_NAME}}'; $signed = ($LASTEXITCODE -eq 0)
+    claude mcp login '{{MCP_NAME}}'
   } else {
-    $exe = (Get-Command claude -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-    try { $p = Start-Process -FilePath $exe -ArgumentList 'mcp', 'login', '{{MCP_NAME}}' -Wait -PassThru -ErrorAction Stop; $signed = ($p.ExitCode -eq 0) }
-    catch { $signed = $false }
+    # claude.exe (native) or claude.cmd (npm); never claude.ps1, which Start-Process would open as a document.
+    $exe = (Get-Command claude -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+    if ($exe) { $argv = @('mcp', 'login', '{{MCP_NAME}}') }
+    else { $exe = $ps; $argv = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', "claude mcp login '{{MCP_NAME}}'") }
+    try { Start-Process -FilePath $exe -ArgumentList $argv -Wait -ErrorAction Stop } catch { }
   }
+  $signed = (claude mcp list 2>&1 | Out-String) -match ([regex]::Escape('{{MCP_NAME}}') + '[^\r\n]*Connected')
   if (-not $signed) { Stop-Setup "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."; return }
   Step "Signed in"
   $conf = Join-Path $dir 'sync.conf'
@@ -472,6 +478,8 @@ CA_SHA='{{CA_SHA}}'
 
 say() { printf '  %s\n' "$1"; }
 quit() { printf '\n  %s\n\n' "$1" >&2; exit 1; }
+
+connected() { claude mcp list 2>/dev/null | grep -F '{{MCP_NAME}}' | grep -q Connected; }
 
 # Claude Code's sign-in only finishes in a terminal. Use this one when there is one (curl | sh from a
 # terminal); otherwise (say, when Claude Code itself runs this) give it a pseudo-terminal of its own.
@@ -530,14 +538,15 @@ sync="$dir/sync.sh"
 # shellcheck disable=SC2086
 curl -fsSL $CURL_CA "$SERVER/claude/sync.sh" -o "$sync" || quit "Couldn't download the sync script from $SERVER."
 
-if claude mcp list 2>/dev/null | grep -F '{{MCP_NAME}}' | grep -q Connected; then
+if connected; then
   say "Already connected"
 else
   # One page in the browser: connect this computer, and pick which of Claude's files to bring in.
   sh "$sync" link "$SERVER" </dev/null || quit "Not connected. Run this again when you're ready."
   # The page just approved this computer, so Claude Code's sign-in goes through without another click.
   say "Finishing sign-in..."
-  signin || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
+  signin || true   # its exit code isn't reliable (130 after a good sign-in), so ask Claude Code instead
+  connected || quit "Sign-in didn't finish. In Claude Code, run /mcp, choose artifact-buckets, then Authenticate."
   say "Signed in"
   if grep -qs '^mode=sync' "$dir/sync.conf"; then printf '\n'; sh "$sync" run || true; fi
 fi
