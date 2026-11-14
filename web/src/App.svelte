@@ -88,7 +88,7 @@
       { href: '/groups', label: 'Groups and access', icon: 'shield' },
       { href: '/storage', label: 'Storage', icon: 'db' },
       { href: '/directory', label: 'Directory', icon: 'building' },
-      { href: '/smb', label: 'SMB shares', icon: 'server' },
+      { href: '/smb', label: 'SMB shares', icon: 'server', show: session.smb },
       { href: '/audit', label: 'Audit log', icon: 'list' },
     ] : []),
   ].filter((n) => n.show !== false));
@@ -132,7 +132,7 @@
       <div class="foot">
         {#if session.isAuditor && pool && total}
           <a class="meter-card" href="/storage">
-            <span class="mc-label">Storage pool</span>
+            <span class="mc-label">{pool.mode === 'direct' ? 'Disk space' : 'Storage pool'}</span>
             <span class="mc-val"><b>{bytes(used, 1)}</b> of {bytes(total, 0)}</span>
             <div class="meter"><div style="width:{Math.max(1.5, Math.min(100, (used / total) * 100))}%"></div></div>
           </a>
@@ -155,7 +155,7 @@
           {#if menu}
             <div class="menu card">
               <div class="note" style="padding:8px 10px">Signed in as <span class="mono">{session.user.username}</span></div>
-              <a class="mi" href="/welcome"><Icon name="sparkle" />Getting started</a>
+              <a class="mi" href="/welcome"><Icon name="list" />Getting started</a>
               <button class="mi" onclick={() => { menu = false; pwOpen = true; }}><Icon name="key" />Change password</button>
               <button class="mi" onclick={signOut}><Icon name="signout" />Sign out</button>
             </div>

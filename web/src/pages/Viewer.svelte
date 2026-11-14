@@ -122,7 +122,7 @@
       </div>
     </div>
     {#if f}
-      <div class="row wrap" style="gap:8px;justify-content:flex-end">
+      <div class="row wrap vacts" style="gap:8px;justify-content:flex-end">
         {#if ['md', 'csv', 'html', 'json'].includes(k) && text !== null}
           <div class="segs" role="group" aria-label="View as">
             <button class="seg" class:on={mode === 'view'} onclick={() => (mode = 'view')}>{k === 'json' ? 'Formatted' : 'Preview'}</button>
@@ -305,6 +305,13 @@
   .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lnk { all: unset; cursor: pointer; color: var(--amber); font-size: 12px; }
   .lnk:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 3px; }
+  @media (max-width: 600px) {
+    .vacts { display: grid !important; grid-template-columns: 1fr 1fr; justify-content: stretch !important; }
+    .vacts :global(.btn), .vacts :global(.segs) { justify-content: center; width: 100%; box-sizing: border-box; }
+    .vacts :global(.segs) { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+    .vacts :global(.btn.pri) { grid-column: 1 / -1; }
+    .fname { white-space: normal; overflow-wrap: anywhere; }
+  }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 0 6px; }
   .acts :global(.btn) { flex: 1 1 auto; }
   @media (max-width: 1100px) { .rail { position: static; max-width: none; } .stage { height: 70vh; } .md { padding: 28px 22px 40px; } }

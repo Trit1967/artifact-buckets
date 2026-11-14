@@ -293,7 +293,7 @@
           {#each folders as f (f.path)}
             <button class="grid rowbtn" onclick={() => open(f.path)} title={f.name}>
               <span class="row" style="gap:12px;min-width:0"><span class="fi"><Icon name="folder" /></span><span class="nm">{f.name}</span></span>
-              <span class="muted">—</span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span>
             </button>
           {/each}
           {#each rows as x (x.path)}

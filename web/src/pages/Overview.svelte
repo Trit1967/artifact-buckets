@@ -13,6 +13,7 @@
   $effect(() => { const n = days; sel = null; api.get('/api/overview', { days: n }).then((x) => (d = x)).catch(fail); });
 
   const series = $derived(d?.series || []);
+  const activeDays = $derived(series.filter((s) => s.mcp + s.other > 0).length);
   const max = $derived(Math.max(1, ...series.map((s) => s.mcp + s.other)));
   const total = $derived(series.reduce((a, s) => a + s.mcp, 0));
   const pick = $derived(sel ?? series.length - 1);
@@ -50,7 +51,7 @@
     <div class="card kpi"><span class="muted">People</span><span class="big">{d.people}</span><span class="note">active accounts</span></div>
     <div class="card kpi"><span class="muted">Files stored</span><span class="big">{d.files.toLocaleString()}</span><span class="note">{d.folders_with_grants} folders with their own sharing</span></div>
     <div class="card kpi"><span class="muted">Saved from Claude Code</span><span class="big" style="color:var(--amber)">{total.toLocaleString()}</span><span class="note">last {days} days</span></div>
-    <div class="card kpi"><span class="muted">Pool capacity</span><span class="big">{d.pool.total_bytes ? Math.round((d.pool.used_bytes / d.pool.total_bytes) * 100) : 0}%</span><span class="note">{bytes(d.pool.used_bytes)} of {bytes(d.pool.total_bytes, 0)}{nvol ? ` on ${nvol} ${nvol === 1 ? 'disk' : 'disks'}` : ''}</span></div>
+    <div class="card kpi"><span class="muted">{d.pool.mode === 'direct' ? 'Disk in use' : 'Pool capacity'}</span><span class="big">{d.pool.total_bytes ? Math.round((d.pool.used_bytes / d.pool.total_bytes) * 100) : 0}%</span><span class="note">{bytes(d.pool.used_bytes)} of {bytes(d.pool.total_bytes, 0)}{nvol ? ` on ${nvol} ${nvol === 1 ? 'disk' : 'disks'}` : ''}</span></div>
   </section>
 
   <section class="duo">
@@ -64,6 +65,12 @@
           </div>
         {/if}
       </div>
+      {#if activeDays < 2}
+        <div class="plot-empty">
+          <span class="mono big">{series.reduce((a, s) => a + s.mcp + s.other, 0)}</span>
+          <span class="note">{activeDays === 0 ? 'No files saved in this period yet.' : `files saved so far, all on ${label(series.find((s) => s.mcp + s.other > 0).date, true)}.`}<br />The daily chart fills in once files arrive on more than one day.</span>
+        </div>
+      {:else}
       <div class="plot" style="gap:{days > 14 ? 4 : 10}px">
         <div class="gl" style="top:0"></div><div class="gl" style="top:50%"></div>
         {#each series as s, i}
@@ -78,10 +85,11 @@
       <div class="xl" style="gap:{days > 14 ? 4 : 10}px">
         {#each series as s, i}<span class="mono" style:color={i === pick ? 'var(--text)' : ''}>{showLabel(i) ? label(s.date) : ''}</span>{/each}
       </div>
+      {/if}
     </div>
 
     <div class="card side">
-      <div class="row" style="justify-content:space-between"><h2>Storage pool</h2><a href="/storage" style="font-size:13px">Manage</a></div>
+      <div class="row" style="justify-content:space-between"><h2>{d.pool.mode === 'direct' ? 'Server disk' : 'Storage pool'}</h2><a href="/storage" style="font-size:13px">Manage</a></div>
       <div class="row" style="align-items:baseline;gap:8px"><span style="font-size:28px;font-weight:600;letter-spacing:-0.03em">{bytes(d.pool.total_bytes - d.pool.used_bytes)}</span><span class="note">free of {bytes(d.pool.total_bytes, 0)}</span></div>
       <div class="bar">
         {#each d.volumes.filter((v) => v.status === 'active' || v.status === 'draining') as v, i}
@@ -97,7 +105,7 @@
             <span class="mono note" style="color:var(--text-2)">{d.pool.mode === 'direct' ? bytes(v.used_bytes) : `${bytes(v.used_bytes)} / ${bytes(v.total_bytes, 0)}`}</span>
           </div>
         {:else}
-          <div class="note" style="padding:12px 0">{d.pool.mode === 'mergerfs' ? 'No volumes mounted yet.' : 'Single-disk mode (development). With pooled disks, volumes show here.'}</div>
+          <div class="note" style="padding:12px 0">{d.pool.mode === 'mergerfs' ? 'No volumes mounted yet.' : 'Files are kept in plain folders on this server.'}</div>
         {/each}
       </div>
     </div>
@@ -134,6 +142,7 @@
 </div>
 
 <style>
+  .plot-empty { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; border: 1px dashed var(--line, #2a2d33); border-radius: 10px; margin-top: 14px; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
   .kpi { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
   .big { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }

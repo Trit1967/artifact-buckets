@@ -15,11 +15,11 @@ from sqlalchemy.orm import Session
 
 from . import accounts, acl, audit, claude_dist, config, directory, fs, mcp, paths, routing, storage, zfs
 from .db import Audit, File, Folder, Grant, Group, Membership, RoutingRule, Token, User, get_setting, new_session, set_setting, utcnow
-from .errors import BadRequest, Forbidden, NotFound, Unauthorized
+from .errors import BadRequest, Forbidden, NotFound, TooManyAttempts, Unauthorized
 from .oauth import set_session_cookie
 from .perms import Actor, role_for
 from .security import hash_password, SESSION_COOKIE, consteq, create_web_session, end_web_session, issue_token, load_web_session, \
-    resolve_token, sign, unsign, verify_password
+    resolve_token, sign, unsign, verify_password, burn_password_check, login_throttle
 
 router = APIRouter(prefix="/api")
 
@@ -74,13 +74,22 @@ class LoginBody(BaseModel):
 
 @router.post("/auth/login")
 def login(body: LoginBody, request: Request, db: Session = Depends(get_db)) -> Response:
-    u = db.scalar(select(User).where(User.username == body.username.strip().lower()))
+    name = body.username.strip().lower()
+    ip = _ip(request)
+    wait = login_throttle.wait(ip, name)
+    if wait:
+        raise TooManyAttempts(f"Too many wrong tries. Try again in {max(1, (wait + 59) // 60)} minute(s).", retry_after=wait)
+    u = db.scalar(select(User).where(User.username == name))
+    if u is None:
+        burn_password_check(body.password)
     ok = u is not None and u.status == "active" and verify_password(body.password, u.password_hash)
     if not ok:
-        audit.log(db, Actor(user=u, via="web", ip=_ip(request)) if u else None, "signin.password", body.username[:64], ok=False,
-                  via="web", ip=_ip(request), reason="unknown account" if u is None else "wrong password or not active")
+        login_throttle.failed(ip, name)
+        audit.log(db, Actor(user=u, via="web", ip=ip) if u else None, "signin.password", body.username[:64], ok=False,
+                  via="web", ip=ip, reason="unknown account" if u is None else "wrong password or not active")
         db.commit()
         raise Unauthorized("Wrong username or password")
+    login_throttle.ok(ip, name)
     raw, csrf = create_web_session(db, u)
     accounts.touch(db, u)
     audit.log(db, Actor(user=u, via="web", ip=_ip(request)), "signin.password", u.username)
