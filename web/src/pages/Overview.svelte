@@ -13,6 +13,7 @@
   $effect(() => { const n = days; sel = null; api.get('/api/overview', { days: n }).then((x) => (d = x)).catch(fail); });
 
   const series = $derived(d?.series || []);
+  const activeDays = $derived(series.filter((s) => s.mcp + s.other > 0).length);
   const max = $derived(Math.max(1, ...series.map((s) => s.mcp + s.other)));
   const total = $derived(series.reduce((a, s) => a + s.mcp, 0));
   const pick = $derived(sel ?? series.length - 1);
@@ -64,6 +65,12 @@
           </div>
         {/if}
       </div>
+      {#if activeDays < 2}
+        <div class="plot-empty">
+          <span class="mono big">{series.reduce((a, s) => a + s.mcp + s.other, 0)}</span>
+          <span class="note">{activeDays === 0 ? 'No files saved in this period yet.' : `files saved so far, all on ${label(series.find((s) => s.mcp + s.other > 0).date, true)}.`}<br />The daily chart fills in once files arrive on more than one day.</span>
+        </div>
+      {:else}
       <div class="plot" style="gap:{days > 14 ? 4 : 10}px">
         <div class="gl" style="top:0"></div><div class="gl" style="top:50%"></div>
         {#each series as s, i}
@@ -78,6 +85,7 @@
       <div class="xl" style="gap:{days > 14 ? 4 : 10}px">
         {#each series as s, i}<span class="mono" style:color={i === pick ? 'var(--text)' : ''}>{showLabel(i) ? label(s.date) : ''}</span>{/each}
       </div>
+      {/if}
     </div>
 
     <div class="card side">
@@ -134,6 +142,7 @@
 </div>
 
 <style>
+  .plot-empty { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; border: 1px dashed var(--line, #2a2d33); border-radius: 10px; margin-top: 14px; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
   .kpi { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
   .big { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }

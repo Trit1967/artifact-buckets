@@ -88,7 +88,7 @@
       { href: '/groups', label: 'Groups and access', icon: 'shield' },
       { href: '/storage', label: 'Storage', icon: 'db' },
       { href: '/directory', label: 'Directory', icon: 'building' },
-      { href: '/smb', label: 'SMB shares', icon: 'server' },
+      { href: '/smb', label: 'SMB shares', icon: 'server', show: session.smb },
       { href: '/audit', label: 'Audit log', icon: 'list' },
     ] : []),
   ].filter((n) => n.show !== false));
